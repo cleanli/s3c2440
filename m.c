@@ -144,6 +144,7 @@ typedef int *__va_list[1];
 int vsprintf(char * /*s*/, const char * /*format*/, __va_list /*arg*/);
 void delay(U32 tt);
 void Lcd_Tft_320X240_Init( void );
+void Lcd_Tft_320X240_Init_from_uboot( void );
 
 #define whichUart   (*(volatile unsigned char *)0x34fffff0)
 char getkey(void)
@@ -268,7 +269,7 @@ int main(void)
     LCD_BUFER = (volatile unsigned short*)0x37000000;
     rGPFCON = 0x55aa;
     whichUart = 0;
-    Lcd_Tft_320X240_Init();
+    Lcd_Tft_320X240_Init_from_uboot();
     while(a--){
         if(rGPFDAT & 0x10){
             rGPFDAT = 0;
@@ -461,6 +462,12 @@ static void Lcd_ClearScr(U16 c)
 			//LCD_BUFER[y][x] = c;
             lbp = LCD_BUFER + y*SCR_XSIZE_TFT_320240 + x;
             *lbp = c;
+#if 0
+            if(c != 0xffff){
+            put_hex_uint((U32)lbp);
+            putch('\n');
+            }
+#endif
         }
     }
 }
@@ -609,6 +616,7 @@ static void Glib_FilledRectangle(int x1,int y1,int x2,int y2,int color)
 
 void Lcd_Tft_320X240_Init( void )
 {
+    int x,y;
     lprintf("Lcd_Tft_320X240_Init enter\r\n");
    	Lcd_Port_Init();
 
@@ -616,7 +624,16 @@ void Lcd_Tft_320X240_Init( void )
     Lcd_EnvidOnOff(1);		//turn on vedio
 
 	Lcd_ClearScr(0xffff);		//fill all screen with some color
+	Lcd_ClearScr(0x0000);		//fill all screen with some color
+	Lcd_ClearScr(0xf81f);		//fill all screen with some color
 
+    for(x = 0; x<320; x++){
+        y=x/2;
+        PutPixel(x,y,0x7e0);
+    }
+
+	//Glib_FilledRectangle( 0, 0, 100, 100,0x0000);		//fill a Rectangle with some color
+#if 0
 	#define LCD_BLANK		16
 	#define C_UP		( LCD_XSIZE_TFT_320240 - LCD_BLANK*2 )
 	#define C_RIGHT		( LCD_XSIZE_TFT_320240 - LCD_BLANK*2 )
@@ -629,6 +646,50 @@ void Lcd_Tft_320X240_Init( void )
 	Glib_FilledRectangle( (LCD_BLANK*2), (LCD_BLANK*2 + V_BLACK*3), (C_RIGHT), (LCD_BLANK*2 + V_BLACK*4),0xffe0);		//fill a Rectangle with some color
 	Glib_FilledRectangle( (LCD_BLANK*2), (LCD_BLANK*2 + V_BLACK*4), (C_RIGHT), (LCD_BLANK*2 + V_BLACK*5),0xf81f);		//fill a Rectangle with some color
 	Glib_FilledRectangle( (LCD_BLANK*2), (LCD_BLANK*2 + V_BLACK*5), (C_RIGHT), (LCD_BLANK*2 + V_BLACK*6),0x07ff);		//fill a Rectangle with some color
+#endif
+    lprintf("Lcd_Tft_320X240_Init quit\r\n");
+}
+
+/*
+ * uboot register value of LCD control
+4d000000: 01700779 033bc14f 00a13f00 0000002b    y.p.O.;..?..+...
+4d000010: 0001cb09 19800000 00012c00 00000140    .........,..@...
+*/
+void Lcd_Tft_320X240_Init_from_uboot( void )
+{
+    int x,y;
+    lprintf("Lcd_Tft_320X240_Init enter\r\n");
+    //Lcd_Port_Init();
+
+    Lcd_EnvidOnOff(0);
+	rLCDSADDR1=(((U32)LCD_BUFER>>22)<<21)|M5D((U32)LCD_BUFER>>1);
+    //Lcd_Init();
+    Lcd_EnvidOnOff(1);		//turn on vedio
+
+	Lcd_ClearScr(0xffff);		//fill all screen with some color
+	Lcd_ClearScr(0x0000);		//fill all screen with some color
+	Lcd_ClearScr(0xf81f);		//fill all screen with some color
+
+    for(x = 0; x<320; x++){
+        y=x/2;
+        PutPixel(x,y,0x7e0);
+    }
+
+	//Glib_FilledRectangle( 0, 0, 100, 100,0x0000);		//fill a Rectangle with some color
+#if 0
+	#define LCD_BLANK		16
+	#define C_UP		( LCD_XSIZE_TFT_320240 - LCD_BLANK*2 )
+	#define C_RIGHT		( LCD_XSIZE_TFT_320240 - LCD_BLANK*2 )
+	#define V_BLACK		( ( LCD_YSIZE_TFT_320240 - LCD_BLANK*4 ) / 6 )
+	Glib_FilledRectangle( LCD_BLANK, LCD_BLANK, ( LCD_XSIZE_TFT_320240 - LCD_BLANK ), ( LCD_YSIZE_TFT_320240 - LCD_BLANK ),0x0000);		//fill a Rectangle with some color
+
+	Glib_FilledRectangle( (LCD_BLANK*2), (LCD_BLANK*2 + V_BLACK*0), (C_RIGHT), (LCD_BLANK*2 + V_BLACK*1),0x001f);		//fill a Rectangle with some color
+	Glib_FilledRectangle( (LCD_BLANK*2), (LCD_BLANK*2 + V_BLACK*1), (C_RIGHT), (LCD_BLANK*2 + V_BLACK*2),0x07e0);		//fill a Rectangle with some color
+	Glib_FilledRectangle( (LCD_BLANK*2), (LCD_BLANK*2 + V_BLACK*2), (C_RIGHT), (LCD_BLANK*2 + V_BLACK*3),0xf800);		//fill a Rectangle with some color
+	Glib_FilledRectangle( (LCD_BLANK*2), (LCD_BLANK*2 + V_BLACK*3), (C_RIGHT), (LCD_BLANK*2 + V_BLACK*4),0xffe0);		//fill a Rectangle with some color
+	Glib_FilledRectangle( (LCD_BLANK*2), (LCD_BLANK*2 + V_BLACK*4), (C_RIGHT), (LCD_BLANK*2 + V_BLACK*5),0xf81f);		//fill a Rectangle with some color
+	Glib_FilledRectangle( (LCD_BLANK*2), (LCD_BLANK*2 + V_BLACK*5), (C_RIGHT), (LCD_BLANK*2 + V_BLACK*6),0x07ff);		//fill a Rectangle with some color
+#endif
     lprintf("Lcd_Tft_320X240_Init quit\r\n");
 }
 
