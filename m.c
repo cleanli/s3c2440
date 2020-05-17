@@ -253,7 +253,8 @@ void delay(U32 tt)
     }
 }
 
-volatile static unsigned short LCD_BUFER[SCR_YSIZE_TFT_320240][SCR_XSIZE_TFT_320240];
+volatile unsigned short * LCD_BUFER = (volatile unsigned short *)0x31010000;
+#define short_lcd_buffer(x,y) (*((volatile unsigned short *)(LCD_BUFER+SCR_XSIZE_TFT_320240*y+x)))
 
 /**************************************************************
 320¡Á240 16Bpp TFT LCDÊý¾ÝºÍ¿ØÖÆ¶Ë¿Ú³õÊ¼»¯
@@ -391,7 +392,7 @@ static void MoveViewPort(void)
 static void PutPixel(U32 x,U32 y,U32 c)
 {
 	if ( (x < SCR_XSIZE_TFT_320240) && (y < SCR_YSIZE_TFT_320240) )
-	LCD_BUFER[(y)][(x)] = c;
+	short_lcd_buffer(x,y) = c;
 }
 
 /**************************************************************
@@ -405,7 +406,7 @@ static void Lcd_ClearScr(U16 c)
     {
     	for( x = 0 ; x < SCR_XSIZE_TFT_320240 ; x++ )
     	{
-			LCD_BUFER[y][x] = c;
+			short_lcd_buffer(x,y) = c;
     	}
     }
 }
