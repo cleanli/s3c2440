@@ -264,7 +264,7 @@ void lprintf(char *fmt, ...)
 int main(void)
 {
     int a = 10;
-    char strprint[]="helloworkd";
+    char * strprint="helloworkd";
     rGPFCON = 0x55aa;
     whichUart = 0;
     *chprtest = 'a';
@@ -290,9 +290,9 @@ int main(void)
         delay(10);
         //lprintf("+++++++\n");
         //puthexchars("++++++");
-        put_hex_uint(0x1234abcd);
         put_hex_uint((U32)strprint);
-        puthexchars(strprint);
+        put_hex_uint(0x1234abcd);
+        putchars(strprint);
         lprintf((char*)chprtest);
     }
     return 0;
