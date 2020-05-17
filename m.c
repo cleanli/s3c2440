@@ -650,6 +650,57 @@ void Lcd_Tft_320X240_Init( void )
     lprintf("Lcd_Tft_320X240_Init quit\r\n");
 }
 
+#define diff(x,y) (x>y?x-y:y-x)
+
+void draw_sq(int x1, int y1, int x2, int y2, int color)
+{
+    int d, x, y;
+    d = 1;
+    if(x1>x2)d=-1;
+    x=x1;
+    do{
+        x += d;
+        PutPixel(x,y1,color);
+        PutPixel(x,y2,color);
+    }while(x!=x2);
+    d = 1;
+    if(y1>y2)d=-1;
+    y=y1;
+    do{
+        y += d;
+        PutPixel(x1,y,color);
+        PutPixel(x2,y,color);
+    }while(y!=y2);
+}
+#if 0
+void draw_line(int x1, int y1, int x2, int y2, int color)
+{
+    float lv;
+    int d, x, y;
+    if(diff(x1,x2)>diff(y1,y2)){
+        d=(x2-x1)/diff(x1,x2);
+        lv = (float)(y2-y1)/(x2-x1);
+        x=x1;
+        do{
+            x += d;
+            y = y1+lv*(float)(x-x1);
+            PutPixel(x,y,color);
+        }while(x!=x2);
+    }
+    else
+    {
+        d=(y2-y1)/diff(y1,y2);
+        lv = (float)(x2-x1)/(y2-y1);
+        y=y1;
+        do{
+            y += d;
+            x = x1+lv*(float)(y-y1);
+            PutPixel(x,y,color);
+        }while(y!=y2);
+    }
+}
+#endif
+
 /*
  * uboot register value of LCD control
 4d000000: 01700779 033bc14f 00a13f00 0000002b    y.p.O.;..?..+...
@@ -670,10 +721,24 @@ void Lcd_Tft_320X240_Init_from_uboot( void )
 	Lcd_ClearScr(0x0000);		//fill all screen with some color
 	Lcd_ClearScr(0xf81f);		//fill all screen with some color
 
+r:
     for(x = 0; x<320; x++){
         y=x/2;
         PutPixel(x,y,0x7e0);
+        draw_sq(x,y, x+20, y+20, 0x7e0);
+        delay(10);
+        if(getkey())return;
+        draw_sq(x,y, x+20, y+20, 0xf81f);
     }
+    for(x = 320; x>0; x--){
+        y=x/2;
+        PutPixel(x,y,0x7e0);
+        draw_sq(x,y, x+20, y+20, 0x7e0);
+        delay(10);
+        if(getkey())return;
+        draw_sq(x,y, x+20, y+20, 0xf81f);
+    }
+    goto r;
 
 	//Glib_FilledRectangle( 0, 0, 100, 100,0x0000);		//fill a Rectangle with some color
 #if 0
