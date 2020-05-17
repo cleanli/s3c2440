@@ -148,7 +148,8 @@ void Lcd_Tft_320X240_Init( void );
 #define whichUart   (*(volatile unsigned char *)0x35000000)
 char getkey(void)
 {
-    if(whichUart==0)
+    //if(whichUart==0)
+    if(1)
     {       
         if(rUTRSTAT0 & 0x1)    //Receive data ready
             return RdURXH0();
@@ -211,6 +212,25 @@ void putch(int data)
     }       
 }               
 
+unsigned char halfbyte2char(unsigned char c)
+{
+        return ((c & 0x0f) < 0x0a)?(0x30 + c):('A' + c - 0x0a);
+}
+
+void puthexch(char c)
+{
+    putch(halfbyte2char(c>>4));
+    putch(halfbyte2char(c&0xf));
+}
+
+void puthexchars(char *pt)
+{
+    while(*pt){
+        puthexch(*pt++);
+        putch(' ');
+    }
+}
+
 void putchars(char *pt)
 {
     while(*pt)
@@ -233,7 +253,8 @@ void lprintf(char *fmt, ...)
 
 int main(void)
 {
-    int a = 20;
+    int a = 10;
+    char strprint[]="helloworkd";
     rGPFCON = 0x55aa;
     whichUart = 0;
     //Lcd_Tft_320X240_Init();
@@ -241,14 +262,21 @@ int main(void)
         if(rGPFDAT & 0x10){
             rGPFDAT = 0;
             //rUTXH0 = '#';
-            WrUTXH0('#');
+            puthexch('#');
+            putch('#');
+            putch('7');
+            putch('\n');
         }
         else{
             rGPFDAT = 0xff;
             putch('@');
+            putch('8');
+            putch('\n');
         }
         delay(10);
-        //lprintf("++++++++\r\n");
+        //lprintf("+++++++\n");
+        //lprintf(strprint);
+        puthexchars("++++++");
     }
     return 0;
 }
@@ -260,7 +288,7 @@ void delay(U32 tt)
         for(i=0;i<10000;i++){}
     }
 }
-
+#if 0
 volatile unsigned short * LCD_BUFER = (volatile unsigned short *)0x34000000;
 #define short_lcd_buffer(x,y) (*((volatile unsigned short *)(LCD_BUFER+SCR_XSIZE_TFT_320240*y+x)))
 
@@ -586,4 +614,4 @@ void Lcd_Tft_320X240_Init( void )
     lprintf("Lcd_Tft_320X240_Init quit\r\n");
 }
 
-
+#endif
