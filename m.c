@@ -260,10 +260,12 @@ void lprintf(char *fmt, ...)
     putchars(fmt);
 }
 
+static volatile unsigned short* LCD_BUFER;
 int main(void)
 {
     int a = 10;
     char * strprint="helloworkd";
+    LCD_BUFER = (volatile unsigned short*)0x37000000;
     rGPFCON = 0x55aa;
     whichUart = 0;
     Lcd_Tft_320X240_Init();
@@ -300,7 +302,6 @@ void delay(U32 tt)
     }
 }
 #if 1
-volatile static unsigned short LCD_BUFER[SCR_YSIZE_TFT_320240][SCR_XSIZE_TFT_320240];
 
 /**************************************************************
 320¡Á240 16Bpp TFT LCDÊý¾ÝºÍ¿ØÖÆ¶Ë¿Ú³õÊ¼»¯
@@ -437,8 +438,12 @@ static void MoveViewPort(void)
 **************************************************************/
 static void PutPixel(U32 x,U32 y,U32 c)
 {
-	if ( (x < SCR_XSIZE_TFT_320240) && (y < SCR_YSIZE_TFT_320240) )
-	LCD_BUFER[(y)][(x)] = c;
+    volatile unsigned short* lbp;
+	if ( (x < SCR_XSIZE_TFT_320240) && (y < SCR_YSIZE_TFT_320240) ){
+	//LCD_BUFER[(y)][(x)] = c;
+        lbp = LCD_BUFER + y*SCR_XSIZE_TFT_320240 + x;
+        *lbp = c;
+    }
 }
 
 /**************************************************************
@@ -447,13 +452,16 @@ static void PutPixel(U32 x,U32 y,U32 c)
 static void Lcd_ClearScr(U16 c)
 {
 	unsigned int x,y ;
+    volatile unsigned short* lbp;
 		
     for( y = 0 ; y < SCR_YSIZE_TFT_320240 ; y++ )
     {
     	for( x = 0 ; x < SCR_XSIZE_TFT_320240 ; x++ )
     	{
-			LCD_BUFER[y][x] = c;
-    	}
+			//LCD_BUFER[y][x] = c;
+            lbp = LCD_BUFER + y*SCR_XSIZE_TFT_320240 + x;
+            *lbp = c;
+        }
     }
 }
 
