@@ -145,7 +145,8 @@ int vsprintf(char * /*s*/, const char * /*format*/, __va_list /*arg*/);
 void delay(U32 tt);
 void Lcd_Tft_320X240_Init( void );
 
-#define whichUart   (*(volatile unsigned char *)0x35000000)
+#define whichUart   (*(volatile unsigned char *)0x34fffff0)
+#define chprtest   ((volatile unsigned char *)0x35000000)
 char getkey(void)
 {
     //if(whichUart==0)
@@ -223,6 +224,15 @@ void puthexch(char c)
     putch(halfbyte2char(c&0xf));
 }
 
+void put_hex_uint(U32 i)
+{
+    int c = 8;
+    while(c--){
+        putch(halfbyte2char((char)((i&0xf0000000)>>28)));
+        i<<=4;
+    }
+}
+
 void puthexchars(char *pt)
 {
     while(*pt){
@@ -257,6 +267,10 @@ int main(void)
     char strprint[]="helloworkd";
     rGPFCON = 0x55aa;
     whichUart = 0;
+    *chprtest = 'a';
+    *(chprtest+1) = 'b';
+    *(chprtest+2) = 'c';
+    *(chprtest+3) = 0;
     //Lcd_Tft_320X240_Init();
     while(a--){
         if(rGPFDAT & 0x10){
@@ -275,8 +289,11 @@ int main(void)
         }
         delay(10);
         //lprintf("+++++++\n");
-        //lprintf(strprint);
-        puthexchars("++++++");
+        //puthexchars("++++++");
+        put_hex_uint(0x1234abcd);
+        put_hex_uint((U32)strprint);
+        puthexchars(strprint);
+        lprintf((char*)chprtest);
     }
     return 0;
 }
