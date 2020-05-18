@@ -262,6 +262,73 @@ void lprintf(char *fmt, ...)
     putchars(fmt);
 }
 
+/*
+ *ADC
+ * */
+#define Uart_Printf lprintf
+#define Uart_GetKey getkey
+#define FCLK 200000000
+#define HCLK (FCLK/2)
+#define PCLK (HCLK/2)
+#define ADCPRS 9
+// ADC
+#define rADCCON    (*(volatile unsigned *)0x58000000) //ADC control
+#define rADCTSC    (*(volatile unsigned *)0x58000004) //ADC touch screen control
+#define rADCDLY    (*(volatile unsigned *)0x58000008) //ADC start or Interval Delay
+#define rADCDAT0   (*(volatile unsigned *)0x5800000c) //ADC conversion data 0
+#define rADCDAT1   (*(volatile unsigned *)0x58000010) //ADC conversion data 1                   
+                        
+#define LOOP 1
+int ReadAdc(int ch)
+{
+    int i;
+    static int prevCh=-1;
+
+    if(prevCh!=ch)
+        {
+        rADCCON=(1<<14)+(ADCPRS<<6)+(ch<<3);
+        for(i=0;i<LOOP;i++);
+        prevCh=ch;
+        }
+    rADCCON=(1<<14)+(ADCPRS<<6)+(ch<<3);
+    rADCTSC = rADCTSC & 0xfb;
+    rADCCON|=0x1;
+
+    while(rADCCON & 0x1);
+    while(!(rADCCON & 0x8000));
+    return (rADCDAT0&0x3ff);
+}
+
+void Test_Adc(void)
+{
+    int a0=0,a1=0;
+    int i,j;
+
+    Uart_Printf("The ADC_IN are adjusted to the following values.\n");        
+    Uart_Printf("Push any key to exit!\n");    
+    Uart_Printf("ADC conv. freq.=%d(Hz)\n",(int)(PCLK/(ADCPRS+1.)));
+    
+    while(Uart_GetKey()==0)
+    {
+
+    a0=ReadAdc(0);
+    a1=ReadAdc(1);
+    Uart_Printf("AIN0: %04d,   AIN1: %04d\n", a0 ,a1);
+    put_hex_uint((U32)a0);
+    putch(' ');
+    put_hex_uint((U32)a1);
+    putch('\n');
+   
+    for (i=0;i<3000;i++)
+    {
+    	for (j=0;j<1000;j++) ;
+    }
+    }
+    
+    rADCCON=(0<<14)+(19<<6)+(7<<3)+(1<<2); 
+    Uart_Printf("rADCCON = 0x%x\n", rADCCON);
+}
+
 /****
  * touch screen test
  * */
@@ -283,8 +350,6 @@ void lprintf(char *fmt, ...)
 
 #define BIT_ADC        (0x1<<31)
 #define BIT_SUB_TC     (0x1<<9)
-#define ADCPRS 9
-#define Uart_Printf lprintf
 
 int count=0;
 volatile int xdata, ydata;
@@ -406,7 +471,8 @@ int main(void)
         put_hex_uint(0x1234abcd);
         putchars(strprint);
     }
-    Test_AdcTs();
+    Test_Adc();
+    //Test_AdcTs();
     return 0;
 }
 void delay(U32 tt)
