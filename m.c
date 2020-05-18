@@ -136,6 +136,7 @@
 #define URXH2       (0x50008024)
 #endif
 
+
 typedef unsigned int U32;
 typedef unsigned short int U16;
 
@@ -261,6 +262,119 @@ void lprintf(char *fmt, ...)
     putchars(fmt);
 }
 
+/****
+ * touch screen test
+ * */
+// ADC
+#define rADCCON    (*(volatile unsigned *)0x58000000) //ADC control
+#define rADCTSC    (*(volatile unsigned *)0x58000004) //ADC touch screen control
+#define rADCDLY    (*(volatile unsigned *)0x58000008) //ADC start or Interval Delay
+#define rADCDAT0   (*(volatile unsigned *)0x5800000c) //ADC conversion data 0
+#define rADCDAT1   (*(volatile unsigned *)0x58000010) //ADC conversion data 1                   
+// INTERRUPT
+#define rSRCPND     (*(volatile unsigned *)0x4a000000) //Interrupt request status
+#define rINTMOD     (*(volatile unsigned *)0x4a000004) //Interrupt mode control
+#define rINTMSK     (*(volatile unsigned *)0x4a000008) //Interrupt mask control
+#define rPRIORITY   (*(volatile unsigned *)0x4a00000a) //IRQ priority control
+#define rINTPND     (*(volatile unsigned *)0x4a000010) //Interrupt request status
+#define rINTOFFSET  (*(volatile unsigned *)0x4a000014) //Interruot request source offset
+#define rSUBSRCPND  (*(volatile unsigned *)0x4a000018) //Sub source pending
+#define rINTSUBMSK  (*(volatile unsigned *)0x4a00001c) //Interrupt sub mask
+
+#define BIT_ADC        (0x1<<31)
+#define BIT_SUB_TC     (0x1<<9)
+#define ADCPRS 9
+#define Uart_Printf lprintf
+
+int count=0;
+volatile int xdata, ydata;
+void TS_handle(void)
+{
+	int i;
+	U32 saveAdcdly;
+
+    if(rADCDAT0&0x8000)
+    {
+	Uart_Printf("\nStylus Up!\n");
+	rADCTSC&=0xff;
+    }
+    else 
+	Uart_Printf("\nStylus Down!\n");
+
+	rADCTSC=(1<<3)|(1<<2);
+	saveAdcdly=rADCDLY;
+	rADCDLY=40000;
+
+	rADCCON|=0x1;
+
+		while(rADCCON & 0x1);
+		while(!(rADCCON & 0x8000));
+		
+            while(!(rSRCPND & (BIT_ADC)));
+
+            xdata=(rADCDAT0&0x3ff);
+            ydata=(rADCDAT1&0x3ff);
+
+	 rSUBSRCPND|=BIT_SUB_TC;
+	rSRCPND = BIT_ADC;
+	rINTPND = BIT_ADC;
+	 rINTSUBMSK=~(BIT_SUB_TC);
+	 rINTMSK=~(BIT_ADC);
+			 
+	 rADCTSC =0xd3;
+	 rADCTSC=rADCTSC|(1<<8);
+
+			while(1)
+			{
+			 if(rSUBSRCPND & (BIT_SUB_TC))
+				 {
+					Uart_Printf("Stylus Up Interrupt!\n");
+					break;
+				}
+			}	
+
+    Uart_Printf("count=%d XP=%04d, YP=%04d\n", count++, xdata, ydata);     
+
+	rADCDLY=saveAdcdly; 
+	rADCTSC=rADCTSC&~(1<<8);
+    rSUBSRCPND|=BIT_SUB_TC;
+    rINTSUBMSK=~(BIT_SUB_TC); 
+	rSRCPND = BIT_ADC;
+	rINTPND = BIT_ADC;
+}
+
+void Test_AdcTs(void)
+{
+   
+    rADCDLY=50000;
+    rADCCON=(1<<14)+(ADCPRS<<6);
+
+    Uart_Printf("[ADC touch screen test.]\n");
+
+    rADCTSC=0xd3;
+
+//    pISR_ADC = (int)AdcTsAuto;
+	rINTMSK|=BIT_ADC;
+	rINTSUBMSK|=(BIT_SUB_TC);
+
+	Uart_Printf("\nType any key to exit!\n");
+	Uart_Printf("\nStylus Down, please...... \n");
+    while(!getkey()){
+        if(rSUBSRCPND & BIT_SUB_TC){
+            TS_handle();
+        }
+    }
+	//Uart_Getch();
+    //if(getkey())return;
+
+	rINTSUBMSK|=BIT_SUB_TC;
+	rINTMSK|=BIT_ADC;
+	Uart_Printf("[Touch Screen Test.]\n");
+
+}
+/****
+ * */
+
 static volatile unsigned short* LCD_BUFER;
 int main(void)
 {
@@ -292,6 +406,7 @@ int main(void)
         put_hex_uint(0x1234abcd);
         putchars(strprint);
     }
+    Test_AdcTs();
     return 0;
 }
 void delay(U32 tt)
