@@ -373,9 +373,12 @@ void TS_handle(void)
 	rADCCON|=0x1;
 
 		while(rADCCON & 0x1);
+    lprintf("1111\n");
 		while(!(rADCCON & 0x8000));
+    lprintf("2222\n");
 		
-            while(!(rSRCPND & (BIT_ADC)));
+            //while(!(rSRCPND & (BIT_ADC)));
+    lprintf("3333\n");
 
             xdata=(rADCDAT0&0x3ff);
             ydata=(rADCDAT1&0x3ff);
@@ -400,6 +403,11 @@ void TS_handle(void)
 
     Uart_Printf("count=%d XP=%04d, YP=%04d\n", count++, xdata, ydata);     
 
+    putch('\n');
+    put_hex_uint((U32)xdata);
+    putch(' ');
+    put_hex_uint((U32)ydata);
+    putch('\n');
 	rADCDLY=saveAdcdly; 
 	rADCTSC=rADCTSC&~(1<<8);
     rSUBSRCPND|=BIT_SUB_TC;
@@ -472,7 +480,7 @@ int main(void)
         putchars(strprint);
     }
     Test_Adc();
-    //Test_AdcTs();
+    Test_AdcTs();
     return 0;
 }
 void delay(U32 tt)
