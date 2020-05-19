@@ -146,6 +146,7 @@ int vsprintf(char * /*s*/, const char * /*format*/, __va_list /*arg*/);
 void delay(U32 tt);
 void Lcd_Tft_320X240_Init( void );
 void Lcd_Tft_320X240_Init_from_uboot( void );
+void draw_sq(int x1, int y1, int x2, int y2, int color);
 
 #define whichUart   (*(volatile unsigned char *)0x34fffff0)
 char getkey(void)
@@ -353,10 +354,32 @@ void Test_Adc(void)
 
 int count=0;
 volatile int xdata, ydata;
+
+#define LESS 0x54
+#define MAX 0x3AA
+U32 div_local(U32 c1, U32 c2)
+{
+    U32 ret=0;
+    while(c1 >= c2){
+        ret++;
+        c1 -= c2;
+    }
+    return ret;
+}
+
+U32 transfer_to_xy_ord(U32 in, U32 max)
+{
+    U32 ret;
+    //ret = max * (in - LESS) /(U32) (MAX - LESS);
+    ret = div_local(max * (in - LESS), (U32) (MAX - LESS));
+    return ret;
+}
+
 void TS_handle(void)
 {
 	int i;
 	U32 saveAdcdly;
+    U32 x, y;
 
     if(rADCDAT0&0x8000)
     {
@@ -408,6 +431,10 @@ void TS_handle(void)
     putch(' ');
     put_hex_uint((U32)ydata);
     putch('\n');
+    x = transfer_to_xy_ord(xdata, 320);
+    y = transfer_to_xy_ord(ydata, 240);
+    y = 240 - y;
+    draw_sq(x, y, x+20, y+20, 0x7e0);
 	rADCDLY=saveAdcdly; 
 	rADCTSC=rADCTSC&~(1<<8);
     rSUBSRCPND|=BIT_SUB_TC;
