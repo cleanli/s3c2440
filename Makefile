@@ -1,4 +1,4 @@
-ARMPRE = arm-linux-
+ARMPRE = arm-none-eabi-
 ARMCC = $(ARMPRE)gcc
 ARMLD = $(ARMPRE)ld
 ARMOC = $(ARMPRE)objcopy

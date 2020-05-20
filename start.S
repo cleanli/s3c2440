@@ -11,6 +11,9 @@ _start:	b      main
        mov pc,lr
      .endm
 
+@Interrupt, FIQ/IRQ disable
+#define NOINT 0xc0 @ 1100 0000
+
 @void CLR_IF(void)@
 CLR_IF:
     @This function works only if the processor is in previliged mode.

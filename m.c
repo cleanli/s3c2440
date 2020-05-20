@@ -142,7 +142,6 @@ typedef unsigned short int U16;
 
 //If you don't use vsprintf(), the code size is reduced very much.
 typedef int *__va_list[1];
-int vsprintf(char * /*s*/, const char * /*format*/, __va_list /*arg*/);
 void delay(U32 tt);
 void Lcd_Tft_320X240_Init( void );
 void Lcd_Tft_320X240_Init_from_uboot( void );
@@ -581,6 +580,8 @@ static void Lcd_EnvidOnOff(int onoff)
 }
 
 
+void SET_IF();
+void CLR_IF();
 /**************************************************************
 320¡Á240 16Bpp TFT LCDÒÆ¶¯¹Û²ì´°¿Ú
 **************************************************************/
