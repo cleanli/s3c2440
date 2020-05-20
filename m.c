@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <math.h>
 
 #define rGPFCON    (*(volatile unsigned *)0x56000050) //Port F control
 #define rGPFDAT    (*(volatile unsigned *)0x56000054) //Port F data
@@ -140,8 +141,6 @@
 typedef unsigned int U32;
 typedef unsigned short int U16;
 
-//If you don't use vsprintf(), the code size is reduced very much.
-typedef int *__va_list[1];
 void delay(U32 tt);
 void Lcd_Tft_320X240_Init( void );
 void Lcd_Tft_320X240_Init_from_uboot( void );
@@ -369,8 +368,8 @@ U32 div_local(U32 c1, U32 c2)
 U32 transfer_to_xy_ord(U32 in, U32 max)
 {
     U32 ret;
-    //ret = max * (in - LESS) /(U32) (MAX - LESS);
-    ret = div_local(max * (in - LESS), (U32) (MAX - LESS));
+    ret = max * (in - LESS) /(U32) (MAX - LESS);
+    //ret = div_local(max * (in - LESS), (U32) (MAX - LESS));
     return ret;
 }
 
@@ -948,7 +947,7 @@ r:
         draw_sq(x,y, x+20, y+20, 0xf81f);
     }
     for(x = 320; x>0; x--){
-        y=x/2;
+        y=sqrt(x);
         PutPixel(x,y,0x7e0);
         draw_sq(x,y, x+20, y+20, 0x7e0);
         delay(10);
