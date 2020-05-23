@@ -3,6 +3,7 @@
 .globl _start
 .globl CLR_IF
 .globl SET_IF
+.globl get_psr
 
 _start:	b      main
 
@@ -31,3 +32,8 @@ SET_IF:
    orr r1,r1,#NOINT
    msr cpsr_cxsf,r1		
    MOV_PC_LR
+
+get_psr:
+	mrs 	r0, cpsr
+	mov	pc, lr
+

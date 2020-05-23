@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <math.h>
 #include "sha256.h"
+#include "xmodem.h"
 
 #define rGPFCON    (*(volatile unsigned *)0x56000050) //Port F control
 #define rGPFDAT    (*(volatile unsigned *)0x56000054) //Port F data
@@ -150,6 +151,23 @@ void Lcd_Tft_320X240_Init_from_uboot( void );
 void draw_sq(int x1, int y1, int x2, int y2, int color);
 
 uint32_t whichUart;
+void s3c2440_serial_send_byte(unsigned char c)
+{
+        while(!(rUTRSTAT0 & 0x2));
+        WrUTXH0(c&0xff);
+}
+
+unsigned char s3c2440_serial_recv_byte()
+{
+        while(!(rUTRSTAT0 & 0x1))
+        return RdURXH0();
+}
+
+uint32_t s3c2440_is_serial_recv()
+{
+	return (rUTRSTAT0 & 0x1);
+}
+
 char getkey(void)
 {
     //if(whichUart==0)
@@ -253,7 +271,6 @@ void putchars(const char *pt)
 
 #define lprint lprintf
 #define print_string putchars
-#define con_send putch
 unsigned char * num2str(uint32_t jt, unsigned char * s, unsigned char n)
 {
         unsigned char * st, k = 1, j;
@@ -811,13 +828,33 @@ error:
 
 }
 
+void go(unsigned char *para)
+{
+	lprint("This will go at the addr you just used with the 'r' cmd. Any problem please check!\r\n");
+	(*((void (*)())mrw_addr))();
+}
+
+void get_file_by_serial(unsigned char *para)
+{
+	uint tmp;
+	lprint("Please send file...\r\n");
+    tmp = get_howmany_para(para);
+	xmodem_1k_recv((unsigned char*)mrw_addr);
+	lprint("done.\r\n");
+}
+
+extern uint get_psr();
+void prt(unsigned char *p)
+{
+	//get_psr();
+	lprint("current CPSR = 0x%x\r\n", get_psr());
+}
+
 static const struct command cmd_list[]=
 {
-#if 0
     {"cpsr",prt,"display the value in CPSR of cpu"},
     {"gfbs",get_file_by_serial,"get file by serial"},
     {"go",go,"jump to ram specified addr to go"},
-#endif
     {"exit",exit_clean_os,"exit clean os"},
     {"help",print_help,"help message"},
 #if 0
