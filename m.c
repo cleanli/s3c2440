@@ -578,6 +578,7 @@ static volatile unsigned short* LCD_BUFER;
 #define CLEAN_OS_VERSION "0.1"
 #define PLATFORM "S3C2440"
 uint32_t cmd_buf_p = 0;
+uint32_t exit_os = 0;
 struct command{
      unsigned char * cmd_name;
      void (*cmd_fun)(unsigned char *);
@@ -586,11 +587,25 @@ struct command{
 
 static unsigned char cmd_buf[COM_MAX_LEN];
 void print_help(unsigned char *para);
+void reboot(unsigned char *p)
+{
+	lprintf("rebooting...\r\n");
+	delay(1000);
+	((void(*const)())0)();
+}
+
+void exit_clean_os(unsigned char *p)
+{
+	lprintf("Exiting Clean OS...Bye!\r\n");
+    exit_os = 1;
+}
+
 static const struct command cmd_list[]=
 {
     //{"cpsr",prt,"display the value in CPSR of cpu"},
     //{"gfbs",get_file_by_serial,"get file by serial"},
     //{"go",go,"jump to ram specified addr to go"},
+    {"exit",exit_clean_os,"exit clean os"},
     {"help",print_help,"help message"},
 #if 0
     {"nandcp",nandcp, "copy nand data to ram specified addr"},
@@ -604,7 +619,9 @@ static const struct command cmd_list[]=
     {"pfbs",put_file_by_serial,"put file by serial"},
     {"pm",pm,"print memory content"},
     {"r",read_mem,"read mem, can set specified addr for other cmd"},
+#endif
     {"reboot",reboot,"restart run program to zero addr"},
+#if 0
     {"rww",rw_word,"read/write word"},
     {"rwb",rw_byte,"read/write byte"},
     {"setip",setip,"set ip addr of local & server"},
@@ -707,7 +724,7 @@ void run_clean_os()
             __DATE__,__TIME__);
 	memset(cmd_buf, 0, COM_MAX_LEN);
 	cmd_buf_p = 0;
-	while(1){
+	while(!exit_os){
 		get_cmd();
 		handle_cmd();
 	}
