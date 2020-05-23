@@ -250,6 +250,7 @@ void putchars(const char *pt)
         putch(*pt++);
 }
 
+#define lprint lprintf
 #define print_string putchars
 #define con_send putch
 unsigned char * num2str(uint32_t jt, unsigned char * s, unsigned char n)
@@ -264,16 +265,16 @@ unsigned char * num2str(uint32_t jt, unsigned char * s, unsigned char n)
                 return s;
         }
         tmp = 1;
-        while(div(jt, tmp) >= n){
+        while(jt/tmp >= n){
                 k++;
                 tmp *= n;
         }
 
         while(k--){
-                j = div(jt, tmp);
+                j = jt/tmp;
                 *st++ = halfbyte2char(j);
                 jt -= tmp * j;
-                tmp = div(tmp, n);
+                tmp = tmp/n;
         }
         *st = 0;
         return s;
@@ -578,6 +579,8 @@ static volatile unsigned short* LCD_BUFER;
 #define ENTER_CHAR 0x0d
 #define CLEAN_OS_VERSION "0.1"
 #define PLATFORM "S3C2440"
+typedef uint32_t uint;
+static uint32_t * mrw_addr = 0x0;
 uint32_t cmd_buf_p = 0;
 uint32_t exit_os = 0;
 struct command{
@@ -588,6 +591,8 @@ struct command{
 
 static unsigned char cmd_buf[COM_MAX_LEN];
 void print_help(unsigned char *para);
+unsigned char * str_to_hex(unsigned char *s, uint * result);
+uint get_howmany_para(unsigned char *s);
 void reboot(unsigned char *p)
 {
 	lprintf("rebooting...\r\n");
@@ -601,11 +606,188 @@ void exit_clean_os(unsigned char *p)
     exit_os = 1;
 }
 
+void rw_byte(unsigned char *p)
+{
+    uint addr, tmp, c;
+
+    tmp = get_howmany_para(p);
+    if(tmp != 1 && tmp != 2)
+        goto error;
+    p = str_to_hex(p, &addr);
+    if(tmp == 1)
+	goto read;
+    p = str_to_hex(p, &c);
+    c &= 0xff;
+write:
+    *(unsigned char*)addr = c;
+    lprint("write %x to addr %x\r\n", c, addr);
+    return;
+read:
+    lprint("read %x at addr %x\r\n", *(unsigned short*)addr&0xff, addr);
+    return;
+
+error:
+    lprint("Error para!\r\nrww (hex addr) [value], will write if have value para\r\n");
+
+}
+
+void rw_word(unsigned char *p)
+{
+    uint addr, tmp, c;
+
+    tmp = get_howmany_para(p);
+    if(tmp != 1 && tmp != 2)
+        goto error;
+    p = str_to_hex(p, &addr);
+    addr &= ~1;
+    if(tmp == 1)
+	goto read;
+    p = str_to_hex(p, &c);
+    c &= 0xffff;
+write:
+    *(unsigned short*)addr = c;
+    lprint("write %x to addr %x\r\n", c, addr);
+    return;
+read:
+    lprint("read %x at addr %x\r\n", *(unsigned short*)addr&0xffff, addr);
+    return;
+
+error:
+    lprint("Error para!\r\nrww (hex addr) [value], will write if have value para\r\n");
+
+}
+
+uint get_howmany_para(unsigned char *s)
+{
+	uint tmp = 0;
+	while(1){
+		while(*s == ' ')
+			s++;
+		if(*s)
+			tmp++;
+		while(*s != ' ' && *s)
+			s++;
+		if(!*s)
+			return tmp;
+	}
+}
+
+uint asc_to_hex(unsigned char c)
+{
+	uint v;
+
+	if(c >= '0' && c <= '9')
+		return c - '0';	
+	if(c >= 'A' && c <= 'F')
+		return c - 'A' + 10;
+	if(c >= 'a' && c <= 'f')
+		return c - 'a' + 10;
+	return 0;
+}
+
+unsigned char * str_to_hex(unsigned char *s, uint * result)
+{
+	uint  i = 0;
+
+	*result = 0;
+	while(*s == ' ')s++;
+	for(i=0;i<8;i++){
+		if(*s == ' ' || *s == 0)
+			break;
+		*result = *result*16 + asc_to_hex(*s++);
+	}
+	while(*s == ' ')s++;
+	return s;
+}
+
+void write_mem(unsigned char *p)
+{
+    uint value, tmp;
+
+    tmp = get_howmany_para(p);
+    if(tmp == 0 || tmp > 2)
+	goto error;
+    p = str_to_hex(p, &value);
+    if(tmp == 1)
+        goto write;
+    str_to_hex(p, (uint*)&mrw_addr);
+    mrw_addr = (uint*)((uint)mrw_addr & 0xfffffffc);
+write:
+    *(uint*)mrw_addr = value;
+    lprint("Write 0x%x to memory 0x%x done!\r\n",value,mrw_addr);
+    return;
+
+error:
+    lprint("Error para!\r\nw (hex value) [(hex addr)](last addr if no this argu)\r\n");
+
+}
+
+void read_mem(unsigned char *p)
+{
+    uint value, tmp;
+
+    tmp = get_howmany_para(p);
+    if( tmp > 1)
+	goto error;
+    if(tmp == 0)
+    	goto read;
+    str_to_hex(p, (uint*)&mrw_addr);
+    mrw_addr = (uint*)((uint)mrw_addr & 0xfffffffc);
+read:
+    value = *(uint*)mrw_addr;
+    lprint("Read 0x%x at memory 0x%x\r\n",value,mrw_addr);
+
+    return;
+
+error:
+    lprint("Error para!\r\nr [(hex addr)](last addr if no this argu)\r\n");
+
+}
+
+void print_mem(unsigned char *cp, uint length)
+{
+    uint i;
+
+    while(length){
+	lprint("\r\n");
+	for(i=0;i<8;i++){
+		puthexch(*cp++);
+        putch(' ');
+		length--;
+		if(!length)
+			break;
+	}
+    }
+}
+
+void pm(unsigned char *p)
+{
+    uint length = 0x80, tmp, i;
+
+    tmp = get_howmany_para(p);
+    if( tmp > 1)
+        goto error;
+    if(tmp == 0)
+        goto print;
+    str_to_hex(p, &length);
+print:
+    lprint("Start print 0x%x mem content @%x:\r\n", length, (uint)mrw_addr);
+    print_mem((unsigned char*)mrw_addr, length);
+    lprint("\r\nPrint end @%x.\r\n", (uint)mrw_addr);
+    return;
+
+error:
+    lprint("Error para!\r\npm [length](default 0x80 if no this argu)\r\n");
+
+}
+
 static const struct command cmd_list[]=
 {
-    //{"cpsr",prt,"display the value in CPSR of cpu"},
-    //{"gfbs",get_file_by_serial,"get file by serial"},
-    //{"go",go,"jump to ram specified addr to go"},
+#if 0
+    {"cpsr",prt,"display the value in CPSR of cpu"},
+    {"gfbs",get_file_by_serial,"get file by serial"},
+    {"go",go,"jump to ram specified addr to go"},
+#endif
     {"exit",exit_clean_os,"exit clean os"},
     {"help",print_help,"help message"},
 #if 0
@@ -618,19 +800,19 @@ static const struct command cmd_list[]=
     {"ndbb",ndbb,"check if one nand block is marked bad"},
     {"ndchkbb",ndchkbb,"scan all flash marked bad block"},
     {"pfbs",put_file_by_serial,"put file by serial"},
+#endif
     {"pm",pm,"print memory content"},
     {"r",read_mem,"read mem, can set specified addr for other cmd"},
-#endif
     {"reboot",reboot,"restart run program to zero addr"},
-#if 0
     {"rww",rw_word,"read/write word"},
     {"rwb",rw_byte,"read/write byte"},
+#if 0
     {"setip",setip,"set ip addr of local & server"},
     {"test",test,"use for debug new command or function"},
     {"tftpget",tftpget,"get file from tftp server"},
     {"tftpput",tftpput,"put file to tftp server from membase"},
-    {"w",write_mem,"write mem, also can set mem addr"},
 #endif
+    {"w",write_mem,"write mem, also can set mem addr"},
     {NULL, NULL, NULL},
 };
 void print_help(unsigned char *para)
