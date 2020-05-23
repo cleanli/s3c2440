@@ -939,7 +939,8 @@ void Lcd_Tft_320X240_Init_from_uboot( void )
 
 r:
     for(x = 0; x<320; x++){
-        y=sqrt(x)*10.0f;
+        y=x/2;
+        //y=sqrt(x)*10.0f;
         PutPixel(x,y,0x7e0);
         draw_sq(x,y, x+20, y+20, 0x7e0);
         delay(10);

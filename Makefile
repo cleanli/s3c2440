@@ -1,4 +1,12 @@
+#use_2019_gcc = true
+ARMLD_FLAG = -Bstatic -Ttext 0x31000000
+ifeq ($(use_2019_gcc),true)
 ARMPRE = arm-none-eabi-
+ARMLD_FLAG += -L/home/clean/tool/gcc-arm-none-eabi-9-2019-q4-major/arm-none-eabi/lib/ -L/home/clean/tool/gcc-arm-none-eabi-9-2019-q4-major/lib/gcc/arm-none-eabi/9.2.1 -lm -lc -lgcc
+else
+ARMPRE = arm-linux-
+ARMLD_FLAG += -L/home/clean/tool/arm/3.4.1/arm-linux/lib/ -L/home/clean/tool/arm/3.4.1/lib/gcc/arm-linux/3.4.1 -lm -lc -lgcc
+endif
 ARMCC = $(ARMPRE)gcc
 ARMLD = $(ARMPRE)ld
 ARMOC = $(ARMPRE)objcopy
@@ -10,7 +18,7 @@ m.bin:m.elf
 	$(ARMOD) -D -S m.elf > m.asm
 
 m.elf:m.o start.o
-	$(ARMLD) -Bstatic -Ttext 0x31000000 -o m.elf start.o m.o -L/home/clean/tool/gcc-arm-none-eabi-9-2019-q4-major/arm-none-eabi/lib/ -L/home/clean/tool/gcc-arm-none-eabi-9-2019-q4-major/lib/gcc/arm-none-eabi/9.2.1 -lm -lc -lgcc
+	$(ARMLD) -o m.elf start.o m.o $(ARMLD_FLAG)
 
 m.o:m.c
 	$(ARMCC) -g -fPIC -c m.c
