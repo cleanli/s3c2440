@@ -157,6 +157,24 @@ void s3c2440_serial_send_byte(unsigned char c)
         WrUTXH0(c&0xff);
 }
 
+static unsigned short random[16];
+static uint32_t newrandom = 0, userandom = 0, runner = 0;
+void random_init()
+{
+	userandom = 0;
+	newrandom = 0;
+	memset(random, 0, 32);
+}
+unsigned short random_u16()
+{
+	if((userandom&0xf) != (newrandom&0xf))/*random not empty*/
+		return random[(userandom++)&0xf];
+	return 0;
+}
+uint32_t random_st()
+{
+	return (newrandom - userandom)&0xf;
+}
 unsigned char s3c2440_serial_recv_byte()
 {
         while(!(rUTRSTAT0 & 0x1))
@@ -197,6 +215,9 @@ char getkey(void)
 void putch(int data)
 {
     //if(whichUart==0)
+		runner++;
+	if(((newrandom - userandom)&0xf) != 15)/*random not full*/
+		random[(newrandom++)&0xf]=runner&0xffff;	
     if(1)
     {
         if(data=='\n')
@@ -850,6 +871,35 @@ void prt(unsigned char *p)
 	lprint("current CPSR = 0x%x\r\n", get_psr());
 }
 
+void test(unsigned char *p)
+{
+}
+void tftpget(unsigned char *p)
+{
+	if(get_howmany_para(p) != 1)
+		goto error;
+	while(*p == ' ')
+		p++;
+	tftp_get(p, mrw_addr);
+	return;
+error:
+    lprint("Error para!\r\ntftpget (name)\r\n");
+}
+void tftpput(unsigned char *p)
+{
+	uint sz;
+	if(get_howmany_para(p) != 2)
+		goto error;
+    	p = str_to_hex(p, &sz);
+	tftp_put(p, sz, mrw_addr);
+	return;
+error:
+    lprint("Error para!\r\ntftpput (filesize) (name)\r\n");
+}
+#define IPADDR(A, B, C, D) ((A)|(B)<<8|(C)<<16|(D)<<24)
+uint local_ip = IPADDR(192, 168, 58, 60);
+uint server_ip = IPADDR(192, 168, 58, 43);
+const unsigned char cs8900_mac[]={0x00, 0x43, 0x33, 0x2f, 0xde, 0x22};
 static const struct command cmd_list[]=
 {
     {"cpsr",prt,"display the value in CPSR of cpu"},
@@ -875,11 +925,9 @@ static const struct command cmd_list[]=
     {"rwb",rw_byte,"read/write byte"},
     //{"setip",setip,"set ip addr of local & server"},
     {"sha256",sha256,"compute the sha256 digest of memory"},
-#if 0
     {"test",test,"use for debug new command or function"},
     {"tftpget",tftpget,"get file from tftp server"},
     {"tftpput",tftpput,"put file to tftp server from membase"},
-#endif
     {"w",write_mem,"write mem, also can set mem addr"},
     {NULL, NULL, NULL},
 };
@@ -983,6 +1031,8 @@ void run_clean_os()
 }
 int main(void)
 {
+random_init();
+cs8900_init(cs8900_mac);
 #if 0
     int a = 10;
     char * strprint="helloworkd";
