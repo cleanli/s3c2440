@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <math.h>
+#include "sha256.h"
 
 #define rGPFCON    (*(volatile unsigned *)0x56000050) //Port F control
 #define rGPFDAT    (*(volatile unsigned *)0x56000054) //Port F data
@@ -781,6 +782,35 @@ error:
 
 }
 
+char result[SHA256_SUM_LEN];
+void sha256(unsigned char *p)
+{
+    int i;
+    uint addr, tmp, len;
+
+    tmp = get_howmany_para(p);
+    if(tmp != 2)
+        goto error;
+    p = str_to_hex(p, &addr);
+    addr &= ~1;
+    p = str_to_hex(p, &len);
+
+    sha256_context my_ctx;
+    sha256_starts(&my_ctx);
+    sha256_update(&my_ctx, (char*)addr, len);
+    sha256_finish(&my_ctx, result);
+    lprint("sha256 digest of addr %x len %x:\r\n", addr, len);
+    for(i=0;i<SHA256_SUM_LEN;i++){
+    puthexch(result[i]&0xff);
+    }
+    lprintf("\n");
+    return;
+
+error:
+    lprint("Error para!\r\nsha256 (hex addr) (len)\r\n");
+
+}
+
 static const struct command cmd_list[]=
 {
 #if 0
@@ -806,8 +836,9 @@ static const struct command cmd_list[]=
     {"reboot",reboot,"restart run program to zero addr"},
     {"rww",rw_word,"read/write word"},
     {"rwb",rw_byte,"read/write byte"},
+    //{"setip",setip,"set ip addr of local & server"},
+    {"sha256",sha256,"compute the sha256 digest of memory"},
 #if 0
-    {"setip",setip,"set ip addr of local & server"},
     {"test",test,"use for debug new command or function"},
     {"tftpget",tftpget,"get file from tftp server"},
     {"tftpput",tftpput,"put file to tftp server from membase"},

@@ -17,11 +17,14 @@ m.bin:m.elf
 	cp m.bin /tmp
 	$(ARMOD) -D -S m.elf > m.asm
 
-m.elf:m.o start.o
-	$(ARMLD) -o m.elf start.o m.o $(ARMLD_FLAG)
+m.elf:m.o sha256.o start.o Makefile
+	$(ARMLD) -o m.elf start.o sha256.o m.o $(ARMLD_FLAG)
 
 m.o:m.c
 	$(ARMCC) -g -fPIC -c m.c
+
+sha256.o:sha256.c
+	$(ARMCC) -g -fPIC -c sha256.c
 
 start.o:start.S
 	$(ARMCC) -fPIC -c start.S
