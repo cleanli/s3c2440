@@ -1,4 +1,6 @@
 #include <stdarg.h>
+#include <string.h>
+#include <stdint.h>
 #include <math.h>
 
 #define rGPFCON    (*(volatile unsigned *)0x56000050) //Port F control
@@ -241,10 +243,60 @@ void puthexchars(char *pt)
     }
 }
 
-void putchars(char *pt)
+void putchars(const char *pt)
 {
     while(*pt)
         putch(*pt++);
+}
+
+#define print_string putchars
+#define con_send putch
+unsigned char * num2str(uint32_t jt, unsigned char * s, unsigned char n)
+{
+        unsigned char * st, k = 1, j;
+        uint32_t tmp;
+
+        st = s;
+        if(n > 16 || n < 2){
+                *st++ = 0x30;
+                *st = 0;
+                return s;
+        }
+        tmp = 1;
+        while(div(jt, tmp) >= n){
+                k++;
+                tmp *= n;
+        }
+
+        while(k--){
+                j = div(jt, tmp);
+                *st++ = halfbyte2char(j);
+                jt -= tmp * j;
+                tmp = div(tmp, n);
+        }
+        *st = 0;
+        return s;
+}
+
+void print_uint(uint32_t num)
+{
+        unsigned char nc[11];
+        num2str(num, nc, 10);
+        print_string(nc);
+}
+
+void print_hex(uint32_t num)
+{
+        unsigned char nc[9];
+        num2str(num, nc, 16);
+        print_string(nc);
+}
+
+void print_binary(uint32_t num)
+{
+        unsigned char nc[33];
+        num2str(num, nc, 2);
+        print_string(nc);
 }
 
 void lprintf(char *fmt, ...)
@@ -258,7 +310,51 @@ void lprintf(char *fmt, ...)
     putchars(string);
     va_end(ap);
 #endif
-    putchars(fmt);
+    const unsigned char *s;
+    uint32_t d;
+    va_list ap;
+
+    va_start(ap, fmt);
+    while (*fmt) {
+        if (*fmt != '%') {
+            con_send(*fmt++);
+            continue;
+        }
+        switch (*++fmt) {
+	    case '%':
+	        con_send(*fmt);
+		break;
+            case 's':
+                s = va_arg(ap, const unsigned char *);
+                print_string(s);
+                break;
+            case 'u':
+                d = va_arg(ap, uint32_t);
+                print_uint(d);
+                break;
+	    /*
+	    case 'c':
+                d = va_arg(ap, char);
+                send_int(d);
+                break;
+	    */
+	    case 'x':
+                d = va_arg(ap, uint32_t);
+                print_hex(d);
+                break;
+	    case 'b':
+                d = va_arg(ap, uint32_t);
+                print_binary(d);
+                break;
+            /* Add other specifiers here... */             
+            default: 
+                con_send(*(fmt-1));
+		con_send(*fmt);
+                break;
+        }
+        fmt++;
+    }
+    va_end(ap);
 }
 
 /*
@@ -474,8 +570,151 @@ void Test_AdcTs(void)
  * */
 
 static volatile unsigned short* LCD_BUFER;
+/**
+ *
+ */
+#define COM_MAX_LEN 32
+#define ENTER_CHAR 0x0d
+#define CLEAN_OS_VERSION "0.1"
+#define PLATFORM "S3C2440"
+uint32_t cmd_buf_p = 0;
+struct command{
+     unsigned char * cmd_name;
+     void (*cmd_fun)(unsigned char *);
+     unsigned char * cmd_des;
+};
+
+static unsigned char cmd_buf[COM_MAX_LEN];
+void print_help(unsigned char *para);
+static const struct command cmd_list[]=
+{
+    //{"cpsr",prt,"display the value in CPSR of cpu"},
+    //{"gfbs",get_file_by_serial,"get file by serial"},
+    //{"go",go,"jump to ram specified addr to go"},
+    {"help",print_help,"help message"},
+#if 0
+    {"nandcp",nandcp, "copy nand data to ram specified addr"},
+    {"nander",nander, "erase nand"},
+    {"nandpp",nandpp, "nand program page from memory"},
+    {"nandr",nandr,"random read nand data"},
+    {"nandspr",nandspr,"random read nand spare data"},
+    {"nandwb",nandwb,"random write nand byte"},
+    {"ndbb",ndbb,"check if one nand block is marked bad"},
+    {"ndchkbb",ndchkbb,"scan all flash marked bad block"},
+    {"pfbs",put_file_by_serial,"put file by serial"},
+    {"pm",pm,"print memory content"},
+    {"r",read_mem,"read mem, can set specified addr for other cmd"},
+    {"reboot",reboot,"restart run program to zero addr"},
+    {"rww",rw_word,"read/write word"},
+    {"rwb",rw_byte,"read/write byte"},
+    {"setip",setip,"set ip addr of local & server"},
+    {"test",test,"use for debug new command or function"},
+    {"tftpget",tftpget,"get file from tftp server"},
+    {"tftpput",tftpput,"put file to tftp server from membase"},
+    {"w",write_mem,"write mem, also can set mem addr"},
+#endif
+    {NULL, NULL, NULL},
+};
+void print_help(unsigned char *para)
+{
+    uint32_t i = 0;
+    lprintf("Clean OS V%s\r\nAvailable cmd is:\r\n\r\n", CLEAN_OS_VERSION);
+    while(1){
+            if(cmd_list[i].cmd_name == NULL)
+                    break;
+	    lprintf("--%s: %s\r\n", cmd_list[i].cmd_name, cmd_list[i].cmd_des);
+	    //lprintf("--%s\r\n\t%s\r\n", cmd_list[i].cmd_name, cmd_list[i].cmd_des);
+            i++;
+    }
+    lprintf("\r\n'r' is a special command, if a address followed, it will be set as a memory base for many other command, such as 'pm', and so on\r\nESC will cancel current command\r\n");
+}
+
+void handle_cmd()
+{
+    unsigned char i = 0, *p_cmd, *p_buf, *cmd_start;
+
+    lprintf("\r\n");
+    cmd_start = cmd_buf;
+    while(*cmd_start == ' ')
+	cmd_start++;
+    if(!*cmd_start)
+	return;
+    while(1){
+	    if(cmd_list[i].cmd_name == NULL)
+		    break;
+	    p_cmd=cmd_list[i].cmd_name;
+	    p_buf=cmd_start;
+	    while(*p_cmd){
+		    if(*p_buf != *p_cmd)
+			    break;
+		    p_buf++;
+		    p_cmd++;
+	    }
+	    if(!(*p_cmd) && (*p_buf == ' ' || !(*p_buf))){
+            	    cmd_list[i].cmd_fun(p_buf);
+            	    return;
+       	    }
+	    i++;
+    }
+    lprintf("Unknow command:%s\r\n",cmd_buf);
+}
+static void get_cmd()
+{
+	unsigned char c;
+start_get_cmd:
+	lprintf("\r\nCleanOS@%s>", PLATFORM);
+	memset(cmd_buf, 0, COM_MAX_LEN);
+	cmd_buf_p = 0;
+	while(1){
+        while( !(c = getkey()));
+/*
+		if(c == ENTER_CHAR){
+			return;
+		}else if(c == 0x1b){
+			goto start_get_cmd;
+		}else{
+			if(cmd_buf_p < (COM_MAX_LEN - 1)){
+				cmd_buf[cmd_buf_p++] = c;
+				con_send(c);
+			}
+		}
+*/
+
+		switch(c){
+			case ENTER_CHAR:
+				return;
+			case 0x1b:
+				goto start_get_cmd;
+			case 0x08:
+				if(cmd_buf_p > 0){
+					cmd_buf[--cmd_buf_p] = 0;
+					lprintf("\b \b");
+				}
+				continue;
+			default:
+				if(cmd_buf_p < (COM_MAX_LEN - 1)){
+					cmd_buf[cmd_buf_p++] = c;
+					putch(c);
+				}
+		}
+
+	}
+}	
+
+void run_clean_os()
+{
+	lprintf("\r\n\r\nHello, this is clean_boot v%s build on %s %s.\r\n", CLEAN_OS_VERSION,
+            __DATE__,__TIME__);
+	memset(cmd_buf, 0, COM_MAX_LEN);
+	cmd_buf_p = 0;
+	while(1){
+		get_cmd();
+		handle_cmd();
+	}
+}
 int main(void)
 {
+#if 0
     int a = 10;
     char * strprint="helloworkd";
     LCD_BUFER = (volatile unsigned short*)0x37000000;
@@ -506,6 +745,8 @@ int main(void)
     }
     Test_Adc();
     Test_AdcTs();
+#endif
+    run_clean_os();
     return 0;
 }
 void delay(U32 tt)
