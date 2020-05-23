@@ -597,7 +597,7 @@ uint get_howmany_para(unsigned char *s);
 void reboot(unsigned char *p)
 {
 	lprintf("rebooting...\r\n");
-	delay(1000);
+	delay(100);
 	((void(*const)())0)();
 }
 
@@ -934,8 +934,8 @@ start_get_cmd:
 
 void run_clean_os()
 {
-	lprintf("\r\n\r\nHello, this is clean_boot v%s build on %s %s.\r\n", CLEAN_OS_VERSION,
-            __DATE__,__TIME__);
+	lprintf("\r\n\r\nHello, this is clean_boot v%s%s build on %s %s.\r\n", CLEAN_OS_VERSION,
+            GIT_SHA1, __DATE__,__TIME__);
 	memset(cmd_buf, 0, COM_MAX_LEN);
 	cmd_buf_p = 0;
     exit_os = 0;

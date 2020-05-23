@@ -20,6 +20,11 @@ ARMLD = $(ARMPRE)ld
 ARMOC = $(ARMPRE)objcopy
 ARMOD = $(ARMPRE)objdump
 
+GIT_SHA1="$(shell git log --format='_%h ' -1)"
+DIRTY="$(shell git diff --quiet || echo 'dirty')"
+CLEAN="$(shell git diff --quiet && echo 'clean')"
+ARMCC_FLAGS+=-DGIT_SHA1=\"$(GIT_SHA1)$(DIRTY)$(CLEAN)\"
+
 m.bin:m.elf
 	$(ARMOC) -O binary m.elf m.bin
 	cp m.bin /tmp
