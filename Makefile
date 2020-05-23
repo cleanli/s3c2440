@@ -7,6 +7,7 @@ OBJS    = $(foreach x,$(SRCEXTS), \
 #use_2019_gcc = true
 ARMLD_FLAG = -Bstatic -Ttext 0x33000000
 ARMCC_FLAGS = -g -fPIC
+ARMS_FLAGS = -fPIC
 ifeq ($(use_2019_gcc),true)
 ARMPRE = arm-none-eabi-
 ARMLD_FLAG += -L/home/clean/tool/gcc-arm-none-eabi-9-2019-q4-major/arm-none-eabi/lib/ -L/home/clean/tool/gcc-arm-none-eabi-9-2019-q4-major/lib/gcc/arm-none-eabi/9.2.1 -lm -lc -lgcc
@@ -25,13 +26,13 @@ m.bin:m.elf
 	$(ARMOD) -D -S m.elf > m.asm
 
 m.elf: $(OBJS) Makefile
-	$(ARMLD) -o m.elf $(OBJS) $(ARMLD_FLAG)
+	$(ARMLD) -o m.elf $(OBJS) -T m.lds $(ARMLD_FLAG)
 
 %.o:%.c
-	$(ARMCC) -c $(ARMCC_FLAGS) $<
+	$(ARMCC) $(ARMCC_FLAGS) -c $<
 
 %.o:%.S
-	$(ARMCC) -c $(ARMCC_FLAGS) $<
+	$(ARMCC) $(ARMS_FLAGS) -c $<
 
 clean:
 	rm *.o *.bin *.elf *.asm

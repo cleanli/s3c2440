@@ -938,6 +938,7 @@ void run_clean_os()
             __DATE__,__TIME__);
 	memset(cmd_buf, 0, COM_MAX_LEN);
 	cmd_buf_p = 0;
+    exit_os = 0;
 	while(!exit_os){
 		get_cmd();
 		handle_cmd();
