@@ -1,5 +1,12 @@
+SRCEXTS   := .c .S
+SRCDIRS   := .
+SOURCES = $(foreach d,$(SRCDIRS),$(wildcard $(addprefix $(d)/*,$(SRCEXTS))))
+OBJS    = $(foreach x,$(SRCEXTS), \
+      $(patsubst %$(x),%.o,$(filter %$(x),$(SOURCES))))
+
 #use_2019_gcc = true
 ARMLD_FLAG = -Bstatic -Ttext 0x33000000
+ARMCC_FLAGS = -g -fPIC
 ifeq ($(use_2019_gcc),true)
 ARMPRE = arm-none-eabi-
 ARMLD_FLAG += -L/home/clean/tool/gcc-arm-none-eabi-9-2019-q4-major/arm-none-eabi/lib/ -L/home/clean/tool/gcc-arm-none-eabi-9-2019-q4-major/lib/gcc/arm-none-eabi/9.2.1 -lm -lc -lgcc
@@ -17,17 +24,14 @@ m.bin:m.elf
 	cp m.bin /tmp
 	$(ARMOD) -D -S m.elf > m.asm
 
-m.elf:m.o sha256.o start.o Makefile
-	$(ARMLD) -o m.elf start.o sha256.o m.o $(ARMLD_FLAG)
+m.elf: $(OBJS) Makefile
+	$(ARMLD) -o m.elf $(OBJS) $(ARMLD_FLAG)
 
-m.o:m.c
-	$(ARMCC) -g -fPIC -c m.c
+%.o:%.c
+	$(ARMCC) -c $(ARMCC_FLAGS) $<
 
-sha256.o:sha256.c
-	$(ARMCC) -g -fPIC -c sha256.c
-
-start.o:start.S
-	$(ARMCC) -fPIC -c start.S
+%.o:%.S
+	$(ARMCC) -c $(ARMCC_FLAGS) $<
 
 clean:
 	rm *.o *.bin *.elf *.asm
