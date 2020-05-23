@@ -148,7 +148,7 @@ void Lcd_Tft_320X240_Init( void );
 void Lcd_Tft_320X240_Init_from_uboot( void );
 void draw_sq(int x1, int y1, int x2, int y2, int color);
 
-#define whichUart   (*(volatile unsigned char *)0x34fffff0)
+uint32_t whichUart;
 char getkey(void)
 {
     //if(whichUart==0)
@@ -177,7 +177,8 @@ char getkey(void)
 }
 void putch(int data)
 {
-    if(whichUart==0)
+    //if(whichUart==0)
+    if(1)
     {
         if(data=='\n')
         {
