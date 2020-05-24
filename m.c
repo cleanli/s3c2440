@@ -820,6 +820,33 @@ error:
 
 }
 
+void fillmem(unsigned char *p)
+{
+    int i;
+    uint addr, tmp, len, fdata;
+    uint*ip;
+
+    tmp = get_howmany_para(p);
+    if(tmp != 3)
+        goto error;
+    p = str_to_hex(p, &addr);
+    addr &= ~1;
+    p = str_to_hex(p, &len);
+    p = str_to_hex(p, &fdata);
+
+    len/=4;
+    ip =  (uint*)addr;
+    while(len--){
+        *ip++ = fdata;
+    }
+
+    return;
+
+error:
+    lprint("Error para!\r\nfm (hex addr) (hex len of bytes) (hex 32bit data)\r\n");
+
+}
+
 char result[SHA256_SUM_LEN];
 void sha256(unsigned char *p)
 {
@@ -873,6 +900,41 @@ void prt(unsigned char *p)
 
 void test(unsigned char *p)
 {
+    uint addr, tmp, len, start_ip, ffcount, last, loopct;
+    uint*ip;
+
+    tmp = get_howmany_para(p);
+    if(tmp != 2)
+        goto error;
+    p = str_to_hex(p, &addr);
+    addr &= ~1;
+    p = str_to_hex(p, &len);
+
+    ip = (uint*)addr;
+    ffcount = 0;
+    start_ip = (uint)ip;
+    loopct = len/4;
+    last = 0;
+    while(loopct--){
+        if(0xffffffff == *ip){
+            ffcount++;
+            if(last != 0xffffffff){
+                start_ip = ip;
+            }
+        }
+        else{
+            if(ffcount > 0x10){
+                lprintf("%x:%x(ff)\r\n", (uint)start_ip, ffcount*4);
+            }
+            ffcount = 0;
+        }
+        last = *ip++;
+    }
+    return;
+
+error:
+    lprint("Error para!\r\nmc (hex addr) (hex len)\r\n");
+
 }
 void tftpget(unsigned char *p)
 {
@@ -906,6 +968,7 @@ static const struct command cmd_list[]=
     {"gfbs",get_file_by_serial,"get file by serial"},
     {"go",go,"jump to ram specified addr to go"},
     {"exit",exit_clean_os,"exit clean os"},
+    {"fm",fillmem,"fill memory with data"},
     {"help",print_help,"help message"},
 #if 0
     {"nandcp",nandcp, "copy nand data to ram specified addr"},
