@@ -1036,6 +1036,95 @@ int nand_read_ll(unsigned char *buf, unsigned long start_addr, int size)
         return 0;
 }
 
+#define ERASE_BLOCK_ADDR_MASK (512 * 32 -1)
+int nand_erase_ll(uint addr)
+{
+        lprint("Erase Command:addr=%x\r\n", addr);
+	if(addr & ERASE_BLOCK_ADDR_MASK){
+		lprint("erase addr not correct!\r\n");
+		return -1;
+	}	
+        if(!(NFSTAT&0x1)){
+                lprint("nand flash may have some problem, quit!\r\n");
+                return -1;
+        }
+/*
+	if(is_marked_bad_block(addr)){
+                lprint("block %x is bad block, quit!\r\n",addr);
+                return -1;
+	}
+*/
+        NAND_CHIP_ENABLE;
+        NAND_CLEAR_RB;
+	NFCMD = 0x60;
+        NFADDR = (addr >> 9) & 0xff;
+        NFADDR = (addr >> 17) & 0xff;
+        NFADDR = (addr >> 25) & 0xff;
+	NFCMD = 0xd0;
+	while(!(NFSTAT & 0x1)){
+#ifdef NAND_DEBUG
+		lprint("%x\r\n", NFSTAT);
+#endif	
+	}
+	NFCMD = 0x70;
+	if(NFDATA & 0x1){
+		lprint("erase failed! may get bad.\r\n");
+        	NAND_CHIP_DISABLE;
+		return -1;
+	}
+	lprint("erase successfully! \r\n");
+        NAND_CHIP_DISABLE;
+	return 0;
+}
+
+int nand_write_ll(unsigned char *buf, unsigned long start_addr, int size)
+{
+        uint i, j;
+
+        lprint("Write Command:membuf=%x, nandaddr=%x, size=%x\r\n", buf, start_addr, size);
+        if ((start_addr & NAND_BLOCK_MASK) || (size & NAND_BLOCK_MASK)) {
+                return -1;      /* invalid alignment */
+        }
+        if(!(NFSTAT&0x1)){
+                lprint("nand flash may have some problem, quit!\r\n");
+                return -1;
+        }
+
+        NAND_CHIP_ENABLE;
+
+        for(i=start_addr; i < (start_addr + size);) {
+                /* READ0 */
+                NAND_CLEAR_RB;
+                NFCMD = 0x80;
+
+                /* Write Address */
+                NFADDR = i & 0xff;
+                NFADDR = (i >> 9) & 0xff;
+                NFADDR = (i >> 17) & 0xff;
+                NFADDR = (i >> 25) & 0xff;
+
+
+                for(j=0; j < NAND_SECTOR_SIZE; j++, i++) {
+                        NFDATA = *buf++;
+                }
+		NFCMD = 0x10;
+        	NAND_DETECT_RB;
+		
+		while(!NFSTAT&0x1);
+		NFCMD = 0x70;
+		if(NFDATA & 0x1){
+			lprint("current block(%x)program failed! may get bad.\r\n", (i-512)&~ERASE_BLOCK_ADDR_MASK);
+        		NAND_CHIP_DISABLE;
+			return -1;
+		}	
+		
+                if(!((i>>9) & 0x3f))
+                        s3c2440_serial_send_byte('<');
+        }
+        NAND_CHIP_DISABLE;
+        return 0;
+}
+                    
 void nandcp(unsigned char *p)
 {
     uint addr, size, pages, tmp;
@@ -1059,6 +1148,51 @@ error:
 
 }
 
+void nander(unsigned char *p)
+{
+    uint addr, tmp;
+
+    tmp = get_howmany_para(p);
+    if(tmp != 1)
+        goto error;
+    p = str_to_hex(p, &addr);
+cp:
+    nand_reset();
+    if(nand_erase_ll(addr))
+	lprint("erase error\r\n");
+    else
+    	lprint("erase nand block 0x%x done!\r\n",addr);
+    return;
+
+error:
+    lprint("Error para!\r\nnander (hex block addr)\r\n");
+
+}
+
+void nandpp(unsigned char *p)
+{
+    uint addr, pages, tmp;
+
+    tmp = get_howmany_para(p);
+    if(tmp != 2)
+        goto error;
+    p = str_to_hex(p, &addr);
+    str_to_hex(p, &pages);
+    addr = addr & 0xfffffe00;
+
+    nand_reset();
+    if(nand_write_ll(mrw_addr, addr, 512 * pages)){
+	lprint("failed\r\n");
+	return;
+    }
+    lprint("program 0x%x pages from memory 0x%x to nand addr %x done!\r\n",pages,mrw_addr,addr);
+    return;
+
+error:
+    lprint("Error para!\r\nnandcp (hex addr) (hex pages)\r\n");
+
+}
+
 #define IPADDR(A, B, C, D) ((A)|(B)<<8|(C)<<16|(D)<<24)
 uint local_ip = IPADDR(192, 168, 58, 60);
 uint server_ip = IPADDR(192, 168, 58, 43);
@@ -1072,9 +1206,9 @@ static const struct command cmd_list[]=
     {"fm",fillmem,"fill memory with data"},
     {"help",print_help,"help message"},
     {"nandcp",nandcp, "copy nand data to ram specified addr"},
-#if 0
     {"nander",nander, "erase nand"},
     {"nandpp",nandpp, "nand program page from memory"},
+#if 0
     {"nandr",nandr,"random read nand data"},
     {"nandspr",nandspr,"random read nand spare data"},
     {"nandwb",nandwb,"random write nand byte"},
