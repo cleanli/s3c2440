@@ -927,7 +927,7 @@ void test(unsigned char *p)
         if(data == *ip){
             ffcount++;
             if(last != data){
-                start_ip = ip;
+                start_ip = (uint)ip;
             }
         }
         else{
@@ -1049,7 +1049,7 @@ void nandcp(unsigned char *p)
     pages = size/512;
 cp:
     nand_reset();
-    nand_read_ll(mrw_addr, addr, 512 * pages);
+    nand_read_ll((unsigned char*)mrw_addr, addr, 512 * pages);
     lprint("cp size 0x%x(0x%x pages) from nand addr %x to memory 0x%x done!\r\n",
             size, pages,addr,mrw_addr);
     return;
