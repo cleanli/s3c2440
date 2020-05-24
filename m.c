@@ -1150,22 +1150,37 @@ error:
 
 void nander(unsigned char *p)
 {
-    uint addr, tmp;
+    uint addr, tmp, size, n;
 
     tmp = get_howmany_para(p);
-    if(tmp != 1)
+    if(tmp != 2)
         goto error;
     p = str_to_hex(p, &addr);
+    p = str_to_hex(p, &size);
+    if(addr%0x4000 != 0){
+        lprint("addr must be 0x4000 x n\r\n");
+        goto error;
+    }
+    if(size%0x4000 != 0){
+        lprint("size must be 0x4000 x n\r\n");
+        goto error;
+    }
+    n = size/0x4000;
 cp:
     nand_reset();
-    if(nand_erase_ll(addr))
-	lprint("erase error\r\n");
-    else
-    	lprint("erase nand block 0x%x done!\r\n",addr);
+    while(n--){
+        if(nand_erase_ll(addr)){
+            lprint("erase error\r\n");
+        }
+        else{
+            lprint("erase nand block 0x%x done!\r\n",addr);
+        }
+        addr+=0x4000;
+    }
     return;
 
 error:
-    lprint("Error para!\r\nnander (hex block addr)\r\n");
+    lprint("Error para!\r\nnander (hex block addr) (hex size)\r\n");
 
 }
 
