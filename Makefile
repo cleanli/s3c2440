@@ -7,7 +7,7 @@ OBJS    = $(foreach x,$(SRCEXTS), \
 #use_2019_gcc = true
 ARMLD_FLAG = -Bstatic -Ttext 0x33000000
 ARMCC_FLAGS = -g -fPIC
-ARMS_FLAGS = -fPIC
+ARMS_FLAGS = -fPIC -pie
 ifeq ($(use_2019_gcc),true)
 ARMPRE = arm-none-eabi-
 ARMLD_FLAG += -L/home/clean/tool/gcc-arm-none-eabi-9-2019-q4-major/arm-none-eabi/lib/ -L/home/clean/tool/gcc-arm-none-eabi-9-2019-q4-major/lib/gcc/arm-none-eabi/9.2.1 -lm -lc -lgcc
