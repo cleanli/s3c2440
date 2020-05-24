@@ -900,15 +900,23 @@ void prt(unsigned char *p)
 
 void test(unsigned char *p)
 {
-    uint addr, tmp, len, start_ip, ffcount, last, loopct;
+    uint addr, tmp, len, start_ip, ffcount, last, loopct, data;
+    uint mininumb = 0x8;
     uint*ip;
 
+    data = 0xffffffff;
     tmp = get_howmany_para(p);
-    if(tmp != 2)
+    if(tmp < 2)
         goto error;
     p = str_to_hex(p, &addr);
     addr &= ~1;
     p = str_to_hex(p, &len);
+    if(tmp == 3){
+        p = str_to_hex(p, &data);
+    }
+    if(tmp == 4){
+        p = str_to_hex(p, &mininumb);
+    }
 
     ip = (uint*)addr;
     ffcount = 0;
@@ -916,15 +924,15 @@ void test(unsigned char *p)
     loopct = len/4;
     last = 0;
     while(loopct--){
-        if(0xffffffff == *ip){
+        if(data == *ip){
             ffcount++;
-            if(last != 0xffffffff){
+            if(last != data){
                 start_ip = ip;
             }
         }
         else{
-            if(ffcount > 0x10){
-                lprintf("%x:%x(ff)\r\n", (uint)start_ip, ffcount*4);
+            if(ffcount > mininumb){
+                lprintf("%x:%x(%x)\r\n", (uint)start_ip, ffcount*4, data);
             }
             ffcount = 0;
         }
@@ -933,7 +941,7 @@ void test(unsigned char *p)
     return;
 
 error:
-    lprint("Error para!\r\nmc (hex addr) (hex len)\r\n");
+    lprint("Error para!\r\nmc (hex addr) (hex len) [data] [miniN]\r\n");
 
 }
 void tftpget(unsigned char *p)
