@@ -966,6 +966,99 @@ void tftpput(unsigned char *p)
 error:
     lprint("Error para!\r\ntftpput (filesize) (name)\r\n");
 }
+
+#define __REGb(x)       (*(volatile unsigned char *)(x))
+#define __REGi(x)       (*(volatile unsigned int *)(x))
+#define NF_BASE         0x4e000000
+
+#define NFCONF          __REGi(NF_BASE + 0x0)
+#define NFCONT          __REGi(NF_BASE + 0x4)
+#define NFCMD           __REGb(NF_BASE + 0x8)
+#define NFADDR          __REGb(NF_BASE + 0xC)
+#define NFDATA          __REGb(NF_BASE + 0x10)
+#define NFSTAT          __REGb(NF_BASE + 0x20)
+
+#define NAND_CHIP_ENABLE  (NFCONT &= ~(1<<1))
+#define NAND_CHIP_DISABLE (NFCONT |=  (1<<1))
+#define NAND_CLEAR_RB     (NFSTAT |=  (1<<2))
+#define NAND_DETECT_RB    { while(! (NFSTAT&(1<<2)) );}
+
+#define NAND_SECTOR_SIZE        512
+#define NAND_BLOCK_MASK         (NAND_SECTOR_SIZE - 1)
+void nand_reset()
+{
+	uint tmp = 10;
+	NFCONF = (7<<12)|(7<<8)|(7<<4)|(0<<0);
+	NFCONT = (1<<4)|(0<<1)|(1<<0);
+	NFSTAT = 0x4;
+	NFCMD = 0xff;
+	while(tmp--);
+        NAND_CHIP_DISABLE;
+}
+
+/* low level nand read function */
+int nand_read_ll(unsigned char *buf, unsigned long start_addr, int size)
+{
+        int i, j;
+	
+	lprint("Copy Command:membuf=%x, nandaddr=%x, size=%x\r\n", buf, start_addr, size);
+        if ((start_addr & NAND_BLOCK_MASK) || (size & NAND_BLOCK_MASK)) {
+                return -1;      /* invalid alignment */
+        }
+	if(!(NFSTAT&0x1)){
+		lprint("nand flash may have some problem, quit!\r\n");
+		return -1;
+	}
+
+        NAND_CHIP_ENABLE;
+
+        for(i=start_addr; i < (start_addr + size);) {
+                /* READ0 */
+                NAND_CLEAR_RB;
+                NFCMD = 0;
+
+                /* Write Address */
+                NFADDR = i & 0xff;
+                NFADDR = (i >> 9) & 0xff;
+                NFADDR = (i >> 17) & 0xff;
+                NFADDR = (i >> 25) & 0xff;
+
+                NAND_DETECT_RB;
+
+                for(j=0; j < NAND_SECTOR_SIZE; j++, i++) {
+                        *buf = (NFDATA & 0xff);
+                        buf++;
+                }
+		if(!((i>>9) & 0x3f))
+			s3c2440_serial_send_byte('>');
+        }
+        NAND_CHIP_DISABLE;
+        return 0;
+}
+
+void nandcp(unsigned char *p)
+{
+    uint addr, size, pages, tmp;
+
+    tmp = get_howmany_para(p);
+    if(tmp != 2)
+        goto error;
+    p = str_to_hex(p, &addr);
+    str_to_hex(p, &size);
+    addr = addr & 0xfffffe00;
+    pages = size/512;
+cp:
+    nand_reset();
+    nand_read_ll(mrw_addr, addr, 512 * pages);
+    lprint("cp size 0x%x(0x%x pages) from nand addr %x to memory 0x%x done!\r\n",
+            size, pages,addr,mrw_addr);
+    return;
+
+error:
+    lprint("Error para!\r\nnandcp (hex addr) (hex size)\r\n");
+
+}
+
 #define IPADDR(A, B, C, D) ((A)|(B)<<8|(C)<<16|(D)<<24)
 uint local_ip = IPADDR(192, 168, 58, 60);
 uint server_ip = IPADDR(192, 168, 58, 43);
@@ -978,8 +1071,8 @@ static const struct command cmd_list[]=
     {"exit",exit_clean_os,"exit clean os"},
     {"fm",fillmem,"fill memory with data"},
     {"help",print_help,"help message"},
-#if 0
     {"nandcp",nandcp, "copy nand data to ram specified addr"},
+#if 0
     {"nander",nander, "erase nand"},
     {"nandpp",nandpp, "nand program page from memory"},
     {"nandr",nandr,"random read nand data"},
