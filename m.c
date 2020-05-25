@@ -1185,13 +1185,18 @@ error:
 
 void nandpp(unsigned char *p)
 {
-    uint addr, pages, tmp;
+    uint addr, pages, tmp, size;
 
     tmp = get_howmany_para(p);
     if(tmp != 2)
         goto error;
     p = str_to_hex(p, &addr);
-    str_to_hex(p, &pages);
+    str_to_hex(p, &size);
+    if(size%512 != 0){
+        lprintf("size should be 512*n\r\n");
+        goto error;
+    }
+    pages = size/512;
     addr = addr & 0xfffffe00;
 
     nand_reset();
@@ -1199,11 +1204,12 @@ void nandpp(unsigned char *p)
 	lprint("failed\r\n");
 	return;
     }
-    lprint("program 0x%x pages from memory 0x%x to nand addr %x done!\r\n",pages,mrw_addr,addr);
+    lprint("program 0x%x pages:size %x from memory 0x%x to nand addr %x done!\r\n",
+            pages,size,mrw_addr,addr);
     return;
 
 error:
-    lprint("Error para!\r\nnandcp (hex addr) (hex pages)\r\n");
+    lprint("Error para!\r\nnandcp (hex addr) (hex size)\r\n");
 
 }
 
