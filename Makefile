@@ -5,7 +5,7 @@ OBJS    = $(foreach x,$(SRCEXTS), \
       $(patsubst %$(x),%.o,$(filter %$(x),$(SOURCES))))
 
 #use_2019_gcc = true
-ARMLD_FLAG = -Bstatic -Ttext 0x33000000
+ARMLD_FLAG = -Bstatic -Ttext 0x32000000
 ARMCC_FLAGS = -g -fPIC -pie
 ARMS_FLAGS = -fPIC -pie
 ifeq ($(use_2019_gcc),true)

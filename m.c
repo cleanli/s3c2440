@@ -1354,8 +1354,31 @@ void some_init()
     whichUart = 0;
     Lcd_Tft_320X240_Init_from_uboot();
 }
+
+int enter_confirm()
+{
+    int ct = 5;
+    int ct1 = 0;
+    lprint("Any key in 5 seconds will go CleanOS, or quit...\r\n");
+    while(ct){
+        if(s3c2440_is_serial_recv()){
+            return 1;
+        }
+        delay(400);
+        if(ct1++ > 100){
+            ct1 = 0;
+            lprint("Count down %u\r\n", ct--);
+        }
+    }
+    return 0;
+}
+
 int main(void)
 {
+    if(enter_confirm() != 1)
+    {
+        return 0;
+    }
     random_init();
     cs8900_init(cs8900_mac);
     some_init();
