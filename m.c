@@ -578,19 +578,18 @@ void TS_handle(void)
 	rINTPND = BIT_ADC;
 }
 
-void Test_AdcTs(void)
+void AdcTS_init()
 {
-   
     rADCDLY=50000;
     rADCCON=(1<<14)+(ADCPRS<<6);
-
-    Uart_Printf("[ADC touch screen test.]\n");
-
     rADCTSC=0xd3;
-
-//    pISR_ADC = (int)AdcTsAuto;
 	rINTMSK|=BIT_ADC;
 	rINTSUBMSK|=(BIT_SUB_TC);
+}
+
+void Test_AdcTs(void)
+{
+    AdcTS_init();
 
 	Uart_Printf("\nType any key to exit!\n");
 	Uart_Printf("\nStylus Down, please...... \n");
@@ -1353,6 +1352,7 @@ void some_init()
     LCD_BUFER = (volatile unsigned short*)0x37000000;
     whichUart = 0;
     Lcd_Tft_320X240_Init_from_uboot();
+    AdcTS_init();
 }
 
 int enter_confirm()
@@ -1362,10 +1362,16 @@ int enter_confirm()
     lprint("Any key in 5 seconds will go CleanOS, or quit...\r\n");
     while(ct){
         if(s3c2440_is_serial_recv()){
+            lprint("Uart Key down\r\n");
             return 1;
         }
-        delay(400);
-        if(ct1++ > 100){
+        if(rSUBSRCPND & BIT_SUB_TC){
+            rSUBSRCPND|=BIT_SUB_TC;
+            lprint("Touch screen down\r\n");
+            return 1;
+        }
+        delay(20);
+        if(ct1++ > 50){
             ct1 = 0;
             lprint("Count down %u\r\n", ct--);
         }
@@ -1375,13 +1381,13 @@ int enter_confirm()
 
 int main(void)
 {
+    random_init();
+    cs8900_init(cs8900_mac);
+    some_init();
     if(enter_confirm() != 1)
     {
         return 0;
     }
-    random_init();
-    cs8900_init(cs8900_mac);
-    some_init();
 #if 0
     int a = 10;
     char * strprint="helloworkd";
