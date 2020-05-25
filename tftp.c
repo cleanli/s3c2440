@@ -1,6 +1,7 @@
 #include "cs8900.h"
 #include "type.h"
 #include "tcp.h"
+#include "debug.h"
 
 #define code
 code const char tftp_req[]=
@@ -153,10 +154,12 @@ uint recv_p()
     			rsp_arp->operation = 0x200;
 			memcpy(rsp_arp->target_mac, arp_p_p->sender_mac, 6);
     			memcpy(rsp_arp->target_ip, arp_p_p->sender_ip, 4);
-			if(cs8900_send(rsp_arp_buf, 60) != 60)
+			if(cs8900_send(rsp_arp_buf, 60) != 60){
 				lprintf("answer asp failed!\r\n");
-			else
+            }
+			else{
 				lprintf("recv asp and answered\r\n");
+            }
 			while(1);
 		}
 		return 0;

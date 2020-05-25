@@ -1,5 +1,6 @@
 #include "s3c2440.h"
 #include "cs8900.h"
+#include "debug.h"
 
 #define NAMESIZE 20
 struct eth_device {

@@ -4,6 +4,7 @@
 #include <math.h>
 #include "sha256.h"
 #include "xmodem.h"
+#include "debug.h"
 
 #define rGPFCON    (*(volatile unsigned *)0x56000050) //Port F control
 #define rGPFDAT    (*(volatile unsigned *)0x56000054) //Port F data
@@ -326,11 +327,27 @@ void print_uint(uint32_t num)
         print_string(nc);
 }
 
+int sprint_uint(char*s, uint32_t num)
+{
+    unsigned char nc[11];
+    num2str(num, nc, 10);
+    strcpy(s, nc);
+    return strlen(nc);
+}
+
 void print_hex(uint32_t num)
 {
         unsigned char nc[9];
         num2str(num, nc, 16);
         print_string(nc);
+}
+
+int sprint_hex(char*s, uint32_t num)
+{
+    unsigned char nc[9];
+    num2str(num, nc, 16);
+    strcpy(s, nc);
+    return strlen(nc);
 }
 
 void print_binary(uint32_t num)
@@ -340,38 +357,51 @@ void print_binary(uint32_t num)
         print_string(nc);
 }
 
-void lprintf(char *fmt, ...)
-{
+char lprintf_buf[256];
+void vslprintf(char*s_buf, const char *fmt, ...);
+void lcd_printf(int x, int y, const char *fmt, ...);
+
 #if 0
+void lprintf(const char *fmt, ...)
+{
+#if 1
     va_list ap;
-    char string[256];
 
     va_start(ap,fmt);
-    vsprintf(string,fmt,ap);
-    putchars(string);
+    vslprintf(lprintf_buf,fmt,ap);
+    putchars(lprintf_buf);
     va_end(ap);
+#else
+    putchars(fmt);
 #endif
+}
+#endif
+
+void vslprintf(char*s_buf, const char *fmt, ...)
+{
     const unsigned char *s;
     uint32_t d;
     va_list ap;
+    char*sp = s_buf;
 
     va_start(ap, fmt);
     while (*fmt) {
         if (*fmt != '%') {
-            con_send(*fmt++);
+            *sp++ = *fmt++;
             continue;
         }
         switch (*++fmt) {
 	    case '%':
-	        con_send(*fmt);
+	        *sp++ = (*fmt);
 		break;
             case 's':
                 s = va_arg(ap, const unsigned char *);
-                print_string(s);
+                strcpy(sp, s);
+                sp += strlen(s);
                 break;
             case 'u':
                 d = va_arg(ap, uint32_t);
-                print_uint(d);
+                sp += sprint_uint(sp, d);
                 break;
 	    /*
 	    case 'c':
@@ -381,20 +411,23 @@ void lprintf(char *fmt, ...)
 	    */
 	    case 'x':
                 d = va_arg(ap, uint32_t);
-                print_hex(d);
+                sp += sprint_hex(sp, d);
                 break;
+	    /*
 	    case 'b':
                 d = va_arg(ap, uint32_t);
                 print_binary(d);
                 break;
+        */
             /* Add other specifiers here... */             
             default: 
-                con_send(*(fmt-1));
-		con_send(*fmt);
+                *sp++ = (*(fmt-1));
+                *sp++ = (*fmt);
                 break;
         }
         fmt++;
     }
+    *sp = 0;
     va_end(ap);
 }
 
@@ -937,6 +970,19 @@ void prt(unsigned char *p)
 
 void test(unsigned char *p)
 {
+    char t[128];
+    vslprintf(t, "abc%sdcd\r\n", "0000");
+    putchars(t);
+    vslprintf(t, "abc%udcd\r\n", 400);
+    putchars(t);
+    vslprintf(t, "abc%xdcd\r\n", 400);
+    putchars(t);
+    vslprintf(t, "abc%xd%uc%sd\r\n", 400, 400, "zzz");
+    putchars(t);
+}
+
+void finddata(unsigned char *p)
+{
     uint addr, tmp, len, start_ip, ffcount, last, loopct, data;
     uint mininumb = 0x8;
     uint*ip;
@@ -978,7 +1024,7 @@ void test(unsigned char *p)
     return;
 
 error:
-    lprint("Error para!\r\nmc (hex addr) (hex len) [data] [miniN]\r\n");
+    lprint("Error para!\r\nfinddata (hex addr) (hex len) [data] [miniN]\r\n");
 
 }
 void tftpget(unsigned char *p)
@@ -1283,6 +1329,7 @@ static const struct command cmd_list[]=
     {"gfbs",get_file_by_serial,"get file by serial"},
     {"go",go,"jump to ram specified addr to go"},
     {"exit",exit_clean_os,"exit clean os"},
+    {"finddata",finddata,"find 32bit data"},
     {"fm",fillmem,"fill memory with data"},
     {"help",print_help,"help message"},
     {"lcddraw",lcddraw,"lcd drawing"},
@@ -1482,6 +1529,7 @@ int main(void)
     Test_Adc();
     Test_AdcTs();
 #endif
+    //lcd_printf(10,10,"Hello world!");
     run_clean_os();
     return 0;
 }
@@ -1908,10 +1956,10 @@ void Lcd_Tft_320X240_Init_from_uboot( void )
 	rLCDSADDR1=(((U32)LCD_BUFER>>22)<<21)|M5D((U32)LCD_BUFER>>1);
     //Lcd_Init();
     Lcd_EnvidOnOff(1);		//turn on vedio
-	Lcd_ClearScr(0xffff);		//fill all screen with some color
+	Lcd_ClearScr(0xf00f);		//fill all screen with some color
 
 	//Glib_FilledRectangle( 0, 0, 100, 100,0x0000);		//fill a Rectangle with some color
-#if 1
+#if 0
 	#define LCD_BLANK		16
 	#define C_UP		( LCD_XSIZE_TFT_320240 - LCD_BLANK*2 )
 	#define C_RIGHT		( LCD_XSIZE_TFT_320240 - LCD_BLANK*2 )
@@ -2244,15 +2292,13 @@ void clear_screen()
 void lcd_printf(int x, int y, const char *fmt, ...)
 {
 	va_list args;
-	uint i;
-	char printbuffer[128];
 
 	va_start(args, fmt);
 
-	i = vsprintf(printbuffer, fmt, args);
+	vslprintf(lprintf_buf, fmt, args);
 	va_end(args);
 
 	/* Print the string */
-	video_drawstring (x, y, printbuffer);
+	video_drawstring (x, y, lprintf_buf);
 }
 

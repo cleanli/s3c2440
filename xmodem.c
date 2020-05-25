@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include "xmodem.h"
+#include "debug.h"
 
-void lprintf(char *fmt, ...);
 uint32_t crc16(unsigned char *c, uint32_t len)
 {
 	uint32_t crc16_check = 0, j;
