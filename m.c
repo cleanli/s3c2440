@@ -723,6 +723,29 @@ uint asc_to_hex(unsigned char c)
 	return 0;
 }
 
+unsigned char * str_to_demical(unsigned char *s, uint * result)
+{
+	uint  i = 0, tmp, err = 0;;
+
+	*result = 0;
+	while(*s == ' ')s++;
+	for(i=0;i<8;i++){
+		if(*s == ' ' || *s == 0)
+			break;
+        tmp = asc_to_hex(*s++);
+        if(tmp > 9){
+            tmp = 0;
+            err = 1;
+        }
+		*result = *result*10 + tmp;
+	}
+	while(*s == ' ')s++;
+    if(err == 1){
+        result = 0;
+    }
+	return s;
+}
+
 unsigned char * str_to_hex(unsigned char *s, uint * result)
 {
 	uint  i = 0;
@@ -1200,7 +1223,7 @@ void nandpp(unsigned char *p)
     addr = addr & 0xfffffe00;
 
     nand_reset();
-    if(nand_write_ll(mrw_addr, addr, 512 * pages)){
+    if(nand_write_ll((unsigned char*)mrw_addr, addr, 512 * pages)){
 	lprint("failed\r\n");
 	return;
     }
@@ -1218,6 +1241,22 @@ void lcddraw(unsigned char *p)
 {
     lcd_drawing();
 }
+
+void dtoh(unsigned char *p)
+{
+    uint data,tmp;
+
+    tmp = get_howmany_para(p);
+    if(tmp != 1)
+        goto error;
+    p = str_to_demical(p, &data);
+    lprint("Demical %u hex %x\r\n", data, data);
+    return;
+
+error:
+    lprint("error para!\r\ndtoh (demical data)\r\n");
+
+}
 #define IPADDR(A, B, C, D) ((A)|(B)<<8|(C)<<16|(D)<<24)
 uint local_ip = IPADDR(192, 168, 58, 60);
 uint server_ip = IPADDR(192, 168, 58, 43);
@@ -1225,6 +1264,7 @@ const unsigned char cs8900_mac[]={0x00, 0x43, 0x33, 0x2f, 0xde, 0x22};
 static const struct command cmd_list[]=
 {
     {"cpsr",prt,"display the value in CPSR of cpu"},
+    {"dtoh",dtoh,"transfer from demical to hex"},
     {"gfbs",get_file_by_serial,"get file by serial"},
     {"go",go,"jump to ram specified addr to go"},
     {"exit",exit_clean_os,"exit clean os"},
