@@ -631,11 +631,26 @@ static unsigned char cmd_buf[COM_MAX_LEN];
 void print_help(unsigned char *para);
 unsigned char * str_to_hex(unsigned char *s, uint * result);
 uint get_howmany_para(unsigned char *s);
+
+// WATCH DOG TIMER
+#define rWTCON   (*(volatile unsigned *)0x53000000) //Watch-dog timer mode
+#define rWTDAT   (*(volatile unsigned *)0x53000004) //Watch-dog timer data
+#define rWTCNT   (*(volatile unsigned *)0x53000008) //Eatch-dog timer count
+
 void reboot(unsigned char *p)
 {
 	lprintf("rebooting...\r\n");
-	delay(100);
-	((void(*const)())0)();
+	/* Disable watchdog */
+	rWTCON = 0x0000;
+
+	/* Initialize watchdog timer count register */
+	rWTCNT = 0x0001;
+
+	/* Enable watchdog timer; assert reset at timer timeout */
+	rWTCON = 0x0021;
+
+	while(1);	/* loop forever and wait for reset to happen */
+
 }
 
 void exit_clean_os(unsigned char *p)
