@@ -291,6 +291,7 @@ void putchars(const char *pt)
         putch(*pt++);
 }
 
+void video_drawstring (int xx, int yy, char *s);
 #define lprint lprintf
 #define print_string putchars
 unsigned char * num2str(uint32_t jt, unsigned char * s, unsigned char n)
@@ -359,7 +360,7 @@ void print_binary(uint32_t num)
 
 char lprintf_buf[256];
 void vslprintf(char*s_buf, const char *fmt, ...);
-void lcd_printf(int x, int y, const char *fmt, ...);
+//void lcd_printf(int x, int y, const char *fmt, ...);
 
 #if 0
 void lprintf(const char *fmt, ...)
@@ -1447,6 +1448,7 @@ void run_clean_os()
 {
 	lprintf("\r\n\r\nHello, this is clean_boot v%s%s build on %s %s.\r\n", CLEAN_OS_VERSION,
             GIT_SHA1, __DATE__,__TIME__);
+    lcd_printf(10,10,"Hello,CleanOS v%s%s", CLEAN_OS_VERSION,GIT_SHA1);
 	memset(cmd_buf, 0, COM_MAX_LEN);
 	cmd_buf_p = 0;
     exit_os = 0;
@@ -1529,7 +1531,6 @@ int main(void)
     Test_Adc();
     Test_AdcTs();
 #endif
-    //lcd_printf(10,10,"Hello world!");
     run_clean_os();
     return 0;
 }
@@ -1957,6 +1958,7 @@ void Lcd_Tft_320X240_Init_from_uboot( void )
     //Lcd_Init();
     Lcd_EnvidOnOff(1);		//turn on vedio
 	Lcd_ClearScr(0xf00f);		//fill all screen with some color
+    video_init();
 
 	//Glib_FilledRectangle( 0, 0, 100, 100,0x0000);		//fill a Rectangle with some color
 #if 0
@@ -2288,7 +2290,7 @@ void clear_screen()
 		*pp = bgx;
 
 }
-
+#if 0
 void lcd_printf(int x, int y, const char *fmt, ...)
 {
 	va_list args;
@@ -2301,4 +2303,5 @@ void lcd_printf(int x, int y, const char *fmt, ...)
 	/* Print the string */
 	video_drawstring (x, y, lprintf_buf);
 }
+#endif
 
