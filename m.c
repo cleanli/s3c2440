@@ -1208,7 +1208,27 @@ int nand_write_ll(unsigned char *buf, unsigned long start_addr, int size)
         NAND_CHIP_DISABLE;
         return 0;
 }
-                    
+
+void memcopy(unsigned char *p)
+{
+    uint addr, size, pages, tmp;
+
+    tmp = get_howmany_para(p);
+    if(tmp != 2)
+        goto error;
+    p = str_to_hex(p, &addr);
+    str_to_hex(p, &size);
+
+    memcpy((char*)mrw_addr, (char*)addr, size);
+    lprint("cp size 0x%x from addr %x to 0x%x done!\r\n",
+            size, addr,mrw_addr);
+    return;
+
+error:
+    lprint("Error para!\r\nmcp (hex source addr) (hex size)\r\n");
+
+}
+
 void nandcp(unsigned char *p)
 {
     uint addr, size, pages, tmp;
@@ -1334,6 +1354,7 @@ static const struct command cmd_list[]=
     {"fm",fillmem,"fill memory with data"},
     {"help",print_help,"help message"},
     {"lcddraw",lcddraw,"lcd drawing"},
+    {"mcp",memcopy,"memory copy"},
     {"nandcp",nandcp, "copy nand data to ram specified addr"},
     {"nander",nander, "erase nand"},
     {"nandpp",nandpp, "nand program page from memory"},
