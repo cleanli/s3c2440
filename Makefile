@@ -5,9 +5,9 @@ OBJS    = $(foreach x,$(SRCEXTS), \
       $(patsubst %$(x),%.o,$(filter %$(x),$(SOURCES))))
 
 #use_2019_gcc = true
-ARMLD_FLAG = -Bstatic -Ttext 0x32000000
-ARMCC_FLAGS = -g -fPIC -pie
-ARMS_FLAGS = -fPIC -pie
+ARMLD_FLAG = -Bstatic -pie -Ttext 0x32000000
+ARMCC_FLAGS = -g -fPIE -pie
+ARMS_FLAGS = -fPIE -pie
 ifeq ($(use_2019_gcc),true)
 ARMPRE = arm-none-eabi-
 ARMLD_FLAG += -L/home/clean/tool/gcc-arm-none-eabi-9-2019-q4-major/arm-none-eabi/lib/ -L/home/clean/tool/gcc-arm-none-eabi-9-2019-q4-major/lib/gcc/arm-none-eabi/9.2.1 -lm -lc -lgcc
