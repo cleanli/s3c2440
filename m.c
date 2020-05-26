@@ -1473,10 +1473,14 @@ void run_clean_os()
 	memset(cmd_buf, 0, COM_MAX_LEN);
 	cmd_buf_p = 0;
     exit_os = 0;
-	while(!exit_os){
-		get_cmd();
-		handle_cmd();
-	}
+    while(1){
+        get_cmd();
+        handle_cmd();
+        if(exit_os == 1){
+            lprintf("exit_os is true\r\n");
+            break;
+        }
+    }
 }
 #define VIDEO_FB_ADRS 0x37000000
 void some_init()
