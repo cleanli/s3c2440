@@ -4,7 +4,7 @@ OUTPUT_ARCH(arm)
 ENTRY(_start)
 SECTIONS
 {
-	. = 0x32000000;
+	. = 0x30000000;
 
 	. = ALIGN(4);
 	.text      :
