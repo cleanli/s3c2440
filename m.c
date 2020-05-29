@@ -969,6 +969,20 @@ void prt(unsigned char *p)
 	lprint("current CPSR = 0x%x\r\n", get_psr());
 }
 
+extern void w_psr(uint d);
+void wprt(unsigned char *p)
+{
+    uint tmp,data;
+	if(get_howmany_para(p) != 1)
+		goto error;
+    str_to_hex(p, &data);
+	w_psr(data);
+	lprint("After write CPSR = 0x%x\r\n", get_psr());
+	return;
+error:
+    lprint("Error para!\r\ncpsrw 32bit data\r\n");
+}
+
 void test(unsigned char *p)
 {
     char t[128];
@@ -1346,6 +1360,7 @@ const unsigned char cs8900_mac[]={0x00, 0x43, 0x33, 0x2f, 0xde, 0x22};
 static const struct command cmd_list[]=
 {
     {"cpsr",prt,"display the value in CPSR of cpu"},
+    {"cpsrw",wprt,"write the value in CPSR of cpu"},
     {"dtoh",dtoh,"transfer from demical to hex"},
     {"gfbs",get_file_by_serial,"get file by serial"},
     {"go",go,"jump to ram specified addr to go"},

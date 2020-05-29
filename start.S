@@ -4,6 +4,7 @@
 .globl CLR_IF
 .globl SET_IF
 .globl get_psr
+.globl w_psr
 
 _start:	b      main
 
@@ -35,5 +36,9 @@ SET_IF:
 
 get_psr:
 	mrs 	r0, cpsr
+	mov	pc, lr
+
+w_psr:
+	msr 	cpsr, r0
 	mov	pc, lr
 
