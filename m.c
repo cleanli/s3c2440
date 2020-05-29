@@ -1973,6 +1973,7 @@ void draw_line(int x1, int y1, int x2, int y2, int color)
 4d000000: 01700779 033bc14f 00a13f00 0000002b    y.p.O.;..?..+...
 4d000010: 0001cb09 19800000 00012c00 00000140    .........,..@...
 */
+static int video_init (void);
 void Lcd_Tft_320X240_Init_from_uboot( void )
 {
     lprintf("Lcd_Tft_320X240_Init enter\r\n");

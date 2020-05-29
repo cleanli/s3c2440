@@ -24,13 +24,13 @@ void lmemcpy(unsigned char*d, unsigned char*s, uint len)
 }
 */
 static uint cs8900_not_ready = 1;
-inline unsigned short io_r(unsigned short raddr)
+static inline unsigned short io_r(unsigned short raddr)
 {
 	wio(POINTER, raddr);
 	return rio(DATA0);
 }
 
-inline void io_w(unsigned short raddr, unsigned short data)
+static inline void io_w(unsigned short raddr, unsigned short data)
 {
 	wio(POINTER, raddr);
 	wio(DATA0, data);
