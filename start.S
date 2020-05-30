@@ -109,6 +109,7 @@ w_psr:
 
 #define CONFIG_STACKSIZE (128*1024)
 #define CONFIG_STACKSIZE_IRQ    (4*1024)
+#define CONFIG_ENV_SIZE     0x20000
 #define CONFIG_SYS_MALLOC_LEN       (CONFIG_ENV_SIZE + 128*1024)
 #define CONFIG_SYS_GBL_DATA_SIZE    128
 	.macro	bad_save_user_regs
@@ -210,14 +211,15 @@ not_used:
 
 	.align	5
 irq:
+	get_irq_stack
+	irq_save_user_regs
+/*
 	ldr	r0, =0x50000020
 	mov	r1, #0x35
 	str	r1, [r0]
-	@get_irq_stack
-	@irq_save_user_regs
-	@bl	do_irq
-	@irq_restore_user_regs
-    b .
+*/
+	bl	do_irq
+	irq_restore_user_regs
 
 fiq:
 	get_fiq_stack

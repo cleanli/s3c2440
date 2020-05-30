@@ -2346,3 +2346,10 @@ void lcd_printf(int x, int y, const char *fmt, ...)
 }
 #endif
 
+void do_irq ()
+{
+	lprintf ("irq: SRCPND %x \n", rSRCPND);
+	lprintf ("irq: INTPND %x \n", rINTPND);
+	rSRCPND = rSRCPND;
+	rINTPND = rINTPND;
+}
