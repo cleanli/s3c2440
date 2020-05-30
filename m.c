@@ -12,7 +12,9 @@ interrupt_func isr_list[INTNUM_S3C2440] = {0};
 void interrutp_init();
 void disable_arm_interrupt();
 void enable_arm_interrupt();
+volatile int xdata, ydata;
 #define BIT_TIMER4     (0x1<<14)
+#define BIT_SUB_ADC    (0x1<<10)
 
 #define rGPFCON    (*(volatile unsigned *)0x56000050) //Port F control
 #define rGPFDAT    (*(volatile unsigned *)0x56000054) //Port F data
@@ -627,7 +629,7 @@ void AdcTS_init()
 {
     rADCDLY=50000;
     rADCCON=(1<<14)+(ADCPRS<<6);
-    rADCTSC=0xd3;
+    rADCTSC=0xd3;//wait pen down
 	rINTMSK|=BIT_ADC;
 	rINTSUBMSK|=(BIT_SUB_TC);
 }
@@ -2365,13 +2367,48 @@ void timer4_isr()
     timer4_click++;
 }
 
+void adc_isr()
+{
+    if(rSUBSRCPND & BIT_SUB_TC){
+        if(rADCDAT0&0x8000)
+        {
+            Uart_Printf("\nStylus Up!\n");
+            rADCTSC=0xd3;//wait pen down
+        }
+        else{
+            Uart_Printf("\nStylus Down!\n");
+
+            rADCTSC=(1<<3)|(1<<2);
+            rADCDLY=40000;
+
+            rADCCON|=0x1;
+        }
+    }
+    else if(rSUBSRCPND & BIT_SUB_ADC){
+		if(rADCCON & 0x8000)
+        {
+            xdata=(rADCDAT0&0x3ff);
+            ydata=(rADCDAT1&0x3ff);
+            Uart_Printf("count=%u XP=%x, YP=%x\n", count++, xdata, ydata);
+            rADCTSC=0x1d3;//wait pen up
+        }
+        else{
+            lprintf("Error! No adc finished!\n");
+        }
+    }
+}
+
 void interrutp_init()
 {
     for(int i = 0; i < INTNUM_S3C2440;i++){
         isr_list[i] = NULL;
     }
     isr_list[14] = timer4_isr;
+    isr_list[31] = adc_isr;
     rINTMSK &= ~BIT_TIMER4;
+    rINTMSK &= ~BIT_ADC;
+    rINTSUBMSK &= ~BIT_SUB_TC;
+    rINTSUBMSK &= ~BIT_SUB_ADC;
 }
 
 void do_irq ()
