@@ -12,7 +12,7 @@ interrupt_func isr_list[INTNUM_S3C2440] = {0};
 void interrutp_init();
 void disable_arm_interrupt();
 void enable_arm_interrupt();
-volatile int xdata, ydata;
+volatile int x_ts_adc_data, y_ts_adc_data;
 #define BIT_TIMER4     (0x1<<14)
 #define BIT_SUB_ADC    (0x1<<10)
 
@@ -535,7 +535,7 @@ void Test_Adc(void)
 #define BIT_SUB_TC     (0x1<<9)
 
 int count=0;
-volatile int xdata, ydata;
+volatile int x_ts_adc_data, y_ts_adc_data;
 
 #define LESS 0x54
 #define MAX 0x3AA
@@ -585,8 +585,8 @@ void TS_handle(void)
             //while(!(rSRCPND & (BIT_ADC)));
     lprintf("3333\n");
 
-            xdata=(rADCDAT0&0x3ff);
-            ydata=(rADCDAT1&0x3ff);
+            x_ts_adc_data=(rADCDAT0&0x3ff);
+            y_ts_adc_data=(rADCDAT1&0x3ff);
 
 	 rSUBSRCPND|=BIT_SUB_TC;
 	rSRCPND = BIT_ADC;
@@ -606,15 +606,15 @@ void TS_handle(void)
 				}
 			}	
 
-    Uart_Printf("count=%d XP=%04d, YP=%04d\n", count++, xdata, ydata);     
+    Uart_Printf("count=%d XP=%04d, YP=%04d\n", count++, x_ts_adc_data, y_ts_adc_data);
 
     putch('\n');
-    put_hex_uint((U32)xdata);
+    put_hex_uint((U32)x_ts_adc_data);
     putch(' ');
-    put_hex_uint((U32)ydata);
+    put_hex_uint((U32)y_ts_adc_data);
     putch('\n');
-    x = transfer_to_xy_ord(xdata, 320);
-    y = transfer_to_xy_ord(ydata, 240);
+    x = transfer_to_xy_ord(x_ts_adc_data, 320);
+    y = transfer_to_xy_ord(y_ts_adc_data, 240);
     y = 240 - y;
     draw_sq(x, y, x+20, y+20, 0x7e0);
 	rADCDLY=saveAdcdly; 
@@ -2378,18 +2378,21 @@ void adc_isr()
         else{
             Uart_Printf("\nStylus Down!\n");
 
+            //pen down, prepare ADC
             rADCTSC=(1<<3)|(1<<2);
             rADCDLY=40000;
 
+            //start ADC
             rADCCON|=0x1;
         }
     }
     else if(rSUBSRCPND & BIT_SUB_ADC){
+        //ADC finish
 		if(rADCCON & 0x8000)
         {
-            xdata=(rADCDAT0&0x3ff);
-            ydata=(rADCDAT1&0x3ff);
-            Uart_Printf("count=%u XP=%x, YP=%x\n", count++, xdata, ydata);
+            x_ts_adc_data=(rADCDAT0&0x3ff);
+            y_ts_adc_data=(rADCDAT1&0x3ff);
+            Uart_Printf("count=%u XP=%x, YP=%x\n", count++, x_ts_adc_data, y_ts_adc_data);
             rADCTSC=0x1d3;//wait pen up
         }
         else{
