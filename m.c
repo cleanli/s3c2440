@@ -5,7 +5,10 @@
 #include "sha256.h"
 #include "xmodem.h"
 #include "debug.h"
+#include "cs8900.h"
 
+void disable_arm_interrupt();
+void enable_arm_interrupt();
 #define BIT_TIMER4     (0x1<<14)
 
 #define rGPFCON    (*(volatile unsigned *)0x56000050) //Port F control
@@ -656,7 +659,6 @@ static volatile unsigned short* LCD_BUFER;
 #define ENTER_CHAR 0x0d
 #define CLEAN_OS_VERSION "0.1"
 #define PLATFORM "S3C2440"
-typedef uint32_t uint;
 static uint32_t * mrw_addr = 0x0;
 uint32_t cmd_buf_p = 0;
 uint32_t exit_os = 0;
@@ -1047,13 +1049,15 @@ error:
     lprint("Error para!\r\nfinddata (hex addr) (hex len) [data] [miniN]\r\n");
 
 }
+void tftp_get(unsigned char* name, unsigned char *buf);
+void tftp_put(unsigned char* name, uint sz, unsigned char *buf);
 void tftpget(unsigned char *p)
 {
 	if(get_howmany_para(p) != 1)
 		goto error;
 	while(*p == ' ')
 		p++;
-	tftp_get(p, mrw_addr);
+	tftp_get(p, (unsigned char*)mrw_addr);
 	return;
 error:
     lprint("Error para!\r\ntftpget (name)\r\n");
@@ -1064,7 +1068,7 @@ void tftpput(unsigned char *p)
 	if(get_howmany_para(p) != 2)
 		goto error;
     	p = str_to_hex(p, &sz);
-	tftp_put(p, sz, mrw_addr);
+	tftp_put(p, sz, (unsigned char*)mrw_addr);
 	return;
 error:
     lprint("Error para!\r\ntftpput (filesize) (name)\r\n");
@@ -1654,8 +1658,6 @@ static void Lcd_EnvidOnOff(int onoff)
 }
 
 
-void disable_arm_interrupt();
-void enable_arm_interrupt();
 /**************************************************************
 320¡Á240 16Bpp TFT LCDÒÆ¶¯¹Û²ì´°¿Ú
 **************************************************************/

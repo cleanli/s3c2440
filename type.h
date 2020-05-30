@@ -1,7 +1,7 @@
 #ifndef _TYPE_H
 #define _TYPE_H
+#include<stdint.h>
 
-#include "debug.h"
-typedef unsigned int uint;
+typedef uint32_t uint;
 
 #endif

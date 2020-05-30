@@ -1,6 +1,7 @@
 #include "s3c2440.h"
 #include "cs8900.h"
 #include "debug.h"
+#include <string.h>
 
 #define NAMESIZE 20
 struct eth_device {
@@ -96,7 +97,7 @@ void cs8900_init_reg()
 	mem_w(TxCFG, 0);
 	mem_w(BufCFG, 0);
 }
-uint cs8900_init(unsigned char * mac)
+uint cs8900_init(const unsigned char * mac)
 {
 	lprintf("\r\nloading cs8900 driver...");
 	if(!cs8900_proble())

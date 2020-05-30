@@ -2,6 +2,7 @@
 #include "type.h"
 #include "tcp.h"
 #include "debug.h"
+#include <string.h>
 
 #define code
 code const char tftp_req[]=
@@ -143,18 +144,18 @@ uint recv_p()
 	struct arp_p *arp_p_p = (struct arp_p *)rep->datas, *rsp_arp = (struct arp_p *)tmp_ep->datas;
 	uint len;
 
-	len = cs8900_recv(r_buf);
+	len = cs8900_recv((unsigned short*)r_buf);
 	if(!len)
 		return 0;
 	if(rep->protocol == 0x0608 && arp_p_p->operation == 0x0100){
-		if( lmemequ(arp_p_p->target_ip, &local_ip, 4)
-		    && lmemequ(arp_p_p->sender_ip, &server_ip, 4)){
+		if( lmemequ(arp_p_p->target_ip, (unsigned char*)&local_ip, 4)
+		    && lmemequ(arp_p_p->sender_ip, (unsigned char*)&server_ip, 4)){
 			setup_arp_req(rsp_arp_buf);
 			memcpy(tmp_ep->dest_mac, rep->src_mac, 6);
     			rsp_arp->operation = 0x200;
 			memcpy(rsp_arp->target_mac, arp_p_p->sender_mac, 6);
     			memcpy(rsp_arp->target_ip, arp_p_p->sender_ip, 4);
-			if(cs8900_send(rsp_arp_buf, 60) != 60){
+			if(cs8900_send((unsigned short*)rsp_arp_buf, 60) != 60){
 				lprintf("answer asp failed!\r\n");
             }
 			else{
@@ -172,7 +173,7 @@ uint get_response(uint (*anlz)(), uint try)
 	uint len, wait;
 	
 send:
-        len = cs8900_send(s_buf, send_len);
+        len = cs8900_send((unsigned short*)s_buf, send_len);
         if(len != send_len){
                 lprintf("send packages error\r\n");
                 return 0;
@@ -313,7 +314,7 @@ uint anlz_tftp()
 		t_s.membase += 512;
 		if(data_len != 512){
 			t_s.running = 0;
-        		cs8900_send(s_buf, send_len);
+        		cs8900_send((unsigned short*)s_buf, send_len);
 			lprintf("\r\nfile size:0x%x(%d)\r\n", t_s.filesize = (t_s.block_n-1)*512 + data_len, t_s.filesize);
 		}
 		t_s.block_n++;

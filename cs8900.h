@@ -40,7 +40,7 @@
 #define TxEvt_CRS 6
 #define TxEvt_TxOK 8
 
-uint cs8900_init(unsigned char * mac);
+uint cs8900_init(const unsigned char * mac);
 uint cs8900_halt();
 uint cs8900_open();
 uint cs8900_recv(unsigned short *buf);

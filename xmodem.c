@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "xmodem.h"
 #include "debug.h"
+#include <string.h>
 
 uint32_t crc16(unsigned char *c, uint32_t len)
 {
