@@ -13,6 +13,7 @@ void interrutp_init();
 void disable_arm_interrupt();
 void enable_arm_interrupt();
 volatile int x_ts_adc_data, y_ts_adc_data;
+volatile int normal_adc_data;
 #define BIT_TIMER4     (0x1<<14)
 #define BIT_SUB_ADC    (0x1<<10)
 
@@ -288,6 +289,17 @@ void put_hex_uint(U32 i)
     }
 }
 
+int sput_hex_uint(char*s, U32 i)
+{
+    int c = 8;
+    char* p = s;
+    while(c--){
+        *p++ = (halfbyte2char((char)((i&0xf0000000)>>28)));
+        i<<=4;
+    }
+    return 8;
+}
+
 void puthexchars(char *pt)
 {
     while(*pt){
@@ -410,6 +422,10 @@ void vslprintf(char*s_buf, const char *fmt, ...)
                 d = va_arg(ap, uint32_t);
                 sp += sprint_hex(sp, d);
                 break;
+	    case 'X':
+                d = va_arg(ap, uint32_t);
+                sp += sput_hex_uint(sp, d);
+                break;
 	    /*
 	    case 'b':
                 d = va_arg(ap, uint32_t);
@@ -484,8 +500,12 @@ int ReadAdc(int ch)
 
 void Test_Adc(void)
 {
+    uint regbak1, regbak2;
     int a0=0,a1=0;
     int i,j;
+
+    regbak1 = rADCCON;
+    regbak2 = rADCTSC;
 
     Uart_Printf("The ADC_IN are adjusted to the following values.\n");        
     Uart_Printf("Push any key to exit!\n");    
@@ -496,11 +516,7 @@ void Test_Adc(void)
 
     a0=ReadAdc(0);
     a1=ReadAdc(1);
-    Uart_Printf("AIN0: %04d,   AIN1: %04d\n", a0 ,a1);
-    put_hex_uint((U32)a0);
-    putch(' ');
-    put_hex_uint((U32)a1);
-    putch('\n');
+    Uart_Printf("AIN0: %X,   AIN1: %X\n", a0 ,a1);
    
     for (i=0;i<3000;i++)
     {
@@ -508,8 +524,8 @@ void Test_Adc(void)
     }
     }
     
-    rADCCON=(0<<14)+(19<<6)+(7<<3)+(1<<2); 
-    Uart_Printf("rADCCON = 0x%x\n", rADCCON);
+    rADCCON = regbak1;
+    rADCTSC = regbak2;
 }
 
 /****
@@ -1352,6 +1368,11 @@ void lcddraw(unsigned char *p)
     lcd_drawing();
 }
 
+void adctest(unsigned char *p)
+{
+    Test_Adc();
+}
+
 void dtoh(unsigned char *p)
 {
     uint data,tmp;
@@ -1373,6 +1394,7 @@ uint server_ip = IPADDR(192, 168, 58, 43);
 const unsigned char cs8900_mac[]={0x00, 0x43, 0x33, 0x2f, 0xde, 0x22};
 static const struct command cmd_list[]=
 {
+    {"adctest",adctest,"adc test"},
     {"cpsr",prt,"display the value in CPSR of cpu"},
     {"cpsrw",wprt,"write the value in CPSR of cpu"},
     {"dtoh",dtoh,"transfer from demical to hex"},
@@ -2369,6 +2391,8 @@ void timer4_isr()
 
 void adc_isr()
 {
+    uint tmp;
+    CDB;
     if(rSUBSRCPND & BIT_SUB_TC){
         if(rADCDAT0&0x8000)
         {
@@ -2385,20 +2409,36 @@ void adc_isr()
             //start ADC
             rADCCON|=0x1;
         }
+        rSUBSRCPND = BIT_SUB_TC;
     }
     else if(rSUBSRCPND & BIT_SUB_ADC){
         //ADC finish
 		if(rADCCON & 0x8000)
         {
-            x_ts_adc_data=(rADCDAT0&0x3ff);
-            y_ts_adc_data=(rADCDAT1&0x3ff);
-            Uart_Printf("count=%u XP=%x, YP=%x\n", count++, x_ts_adc_data, y_ts_adc_data);
-            rADCTSC=0x1d3;//wait pen up
+            tmp = rADCDAT0;
+            lprintf("dat0 %x\n", tmp);
+            if(rADCTSC & (1<<7)){//TS 0x73: Normal 0xD3
+                //normal ADC
+                normal_adc_data=(tmp&0x3ff);
+            }
+            else{
+                x_ts_adc_data=(tmp&0x3ff);
+                y_ts_adc_data=(rADCDAT1&0x3ff);
+                Uart_Printf("count=%u XP=%x, YP=%x\n", count++, x_ts_adc_data, y_ts_adc_data);
+                rADCTSC=0x1d3;//wait pen up
+            }
         }
         else{
             lprintf("Error! No adc finished!\n");
         }
+        rSUBSRCPND = BIT_SUB_ADC;
     }
+    lprintf("adc reg dump:%X\n",  rADCCON  );//ADC control
+    lprintf("adc reg dump:%X\n",  rADCTSC  ); //ADC touch screen control
+    lprintf("adc reg dump:%X\n",  rADCDLY  ); //ADC start or Interval Delay
+    lprintf("adc reg dump:%X\n",  rADCDAT0 ); //ADC conversion data 0
+    lprintf("adc reg dump:%X\n",  rADCDAT1 ); //ADC conversion data 1                   
+    CDB;
 }
 
 void interrutp_init()
@@ -2431,7 +2471,6 @@ void do_irq ()
         }
         flag <<= 1;
     }
-	rSRCPND = rSRCPND;
+	rSRCPND = rINTPND;
 	rINTPND = rINTPND;
-	rSUBSRCPND = rSUBSRCPND;
 }
