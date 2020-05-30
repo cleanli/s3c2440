@@ -550,7 +550,6 @@ void Test_Adc(void)
 #define BIT_ADC        (0x1<<31)
 #define BIT_SUB_TC     (0x1<<9)
 
-int count=0;
 volatile int x_ts_adc_data, y_ts_adc_data;
 
 #define LESS 0x54
@@ -622,7 +621,7 @@ void TS_handle(void)
 				}
 			}	
 
-    Uart_Printf("count=%d XP=%04d, YP=%04d\n", count++, x_ts_adc_data, y_ts_adc_data);
+    Uart_Printf("XP=%04d, YP=%04d\n", x_ts_adc_data, y_ts_adc_data);
 
     putch('\n');
     put_hex_uint((U32)x_ts_adc_data);
@@ -2392,11 +2391,11 @@ void timer4_isr()
 void adc_isr()
 {
     uint tmp;
-    CDB;
+    //CDB;
     if(rSUBSRCPND & BIT_SUB_TC){
         if(rADCDAT0&0x8000)
         {
-            Uart_Printf("\nStylus Up!\n");
+            Uart_Printf("Stylus Up!\n");
             rADCTSC=0xd3;//wait pen down
         }
         else{
@@ -2416,7 +2415,7 @@ void adc_isr()
 		if(rADCCON & 0x8000)
         {
             tmp = rADCDAT0;
-            lprintf("dat0 %x\n", tmp);
+            //lprintf("dat0 %x\n", tmp);
             if(rADCTSC & (1<<7)){//TS 0x73: Normal 0xD3
                 //normal ADC
                 normal_adc_data=(tmp&0x3ff);
@@ -2424,7 +2423,7 @@ void adc_isr()
             else{
                 x_ts_adc_data=(tmp&0x3ff);
                 y_ts_adc_data=(rADCDAT1&0x3ff);
-                Uart_Printf("count=%u XP=%x, YP=%x\n", count++, x_ts_adc_data, y_ts_adc_data);
+                Uart_Printf("XP=%x, YP=%x\n", x_ts_adc_data, y_ts_adc_data);
                 rADCTSC=0x1d3;//wait pen up
             }
         }
@@ -2433,12 +2432,13 @@ void adc_isr()
         }
         rSUBSRCPND = BIT_SUB_ADC;
     }
+#if 0
     lprintf("adc reg dump:%X\n",  rADCCON  );//ADC control
     lprintf("adc reg dump:%X\n",  rADCTSC  ); //ADC touch screen control
     lprintf("adc reg dump:%X\n",  rADCDLY  ); //ADC start or Interval Delay
     lprintf("adc reg dump:%X\n",  rADCDAT0 ); //ADC conversion data 0
     lprintf("adc reg dump:%X\n",  rADCDAT1 ); //ADC conversion data 1                   
-    CDB;
+#endif
 }
 
 void interrutp_init()
