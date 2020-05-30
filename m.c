@@ -7,6 +7,9 @@
 #include "debug.h"
 #include "cs8900.h"
 
+#define INTNUM_S3C2440 32
+interrupt_func isr_list[INTNUM_S3C2440] = {0};
+void interrutp_init();
 void disable_arm_interrupt();
 void enable_arm_interrupt();
 #define BIT_TIMER4     (0x1<<14)
@@ -1512,7 +1515,7 @@ void some_init()
     LCD_BUFER = (volatile unsigned short*)VIDEO_FB_ADRS;
     whichUart = 0;
     Lcd_Tft_320X240_Init_from_uboot();
-    rINTMSK &= ~BIT_TIMER4;
+    interrutp_init();
 }
 
 int enter_confirm()
@@ -2357,18 +2360,36 @@ void lcd_printf(int x, int y, const char *fmt, ...)
 }
 #endif
 
+void timer4_isr()
+{
+    timer4_click++;
+}
+
+void interrutp_init()
+{
+    for(int i = 0; i < INTNUM_S3C2440;i++){
+        isr_list[i] = NULL;
+    }
+    isr_list[14] = timer4_isr;
+    rINTMSK &= ~BIT_TIMER4;
+}
+
 void do_irq ()
 {
-	//lprintf ("irq: SRCPND %x \n", rSRCPND);
-	//lprintf ("irq: INTPND %x \n", rINTPND);
-    if(BIT_TIMER4 & rINTPND){
-        timer4_click++;
-        //timer4 interrupt
-    }
-    else{
-        lprintf ("irq: SRCPND %x \n", rSRCPND);
-        lprintf ("irq: INTPND %x \n", rINTPND);
-        lprintf ("irq: SUBSRCPND %x \n", rSUBSRCPND);
+    uint flag = 1;
+    for(int i = 0; i < INTNUM_S3C2440;i++){
+        if(flag & rINTPND){
+            if(isr_list[i] != NULL){
+                isr_list[i]();
+            }
+            else{
+                lprint("Warning! No ISR for %x\n", flag);
+                lprintf ("irq: SRCPND %x \n", rSRCPND);
+                lprintf ("irq: INTPND %x \n", rINTPND);
+                lprintf ("irq: SUBSRCPND %x \n", rSUBSRCPND);
+            }
+        }
+        flag <<= 1;
     }
 	rSRCPND = rSRCPND;
 	rINTPND = rINTPND;
