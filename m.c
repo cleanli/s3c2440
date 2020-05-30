@@ -1573,7 +1573,9 @@ int main(void)
     Test_Adc();
     Test_AdcTs();
 #endif
+    enable_arm_interrupt();
     run_clean_os();
+    disable_arm_interrupt();
     return 0;
 }
 void delay(U32 tt)
@@ -1647,8 +1649,8 @@ static void Lcd_EnvidOnOff(int onoff)
 }
 
 
-void SET_IF();
-void CLR_IF();
+void disable_arm_interrupt();
+void enable_arm_interrupt();
 /**************************************************************
 320¡Á240 16Bpp TFT LCDÒÆ¶¯¹Û²ì´°¿Ú
 **************************************************************/
@@ -1656,7 +1658,7 @@ static void Lcd_MoveViewPort(int vx,int vy)
 {
     U32 addr;
 
-    SET_IF(); 
+    disable_arm_interrupt();
 	#if (LCD_XSIZE_TFT_320240<32)
     	    while((rLCDCON1>>18)<=1); // if x<32
 	#else	
@@ -1666,7 +1668,7 @@ static void Lcd_MoveViewPort(int vx,int vy)
     addr=(U32)LCD_BUFER+(vx*2)+vy*(SCR_XSIZE_TFT_320240*2);
 	rLCDSADDR1= ( (addr>>22)<<21 ) | M5D(addr>>1 );
 	rLCDSADDR2= M5D(((addr+(SCR_XSIZE_TFT_320240*LCD_YSIZE_TFT_320240*2))>>1));
-	CLR_IF();
+    enable_arm_interrupt();
 }    
 
 /**************************************************************
