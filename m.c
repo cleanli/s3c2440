@@ -2365,6 +2365,12 @@ void do_irq ()
         timer4_click++;
         //timer4 interrupt
     }
+    else{
+        lprintf ("irq: SRCPND %x \n", rSRCPND);
+        lprintf ("irq: INTPND %x \n", rINTPND);
+        lprintf ("irq: SUBSRCPND %x \n", rSUBSRCPND);
+    }
 	rSRCPND = rSRCPND;
 	rINTPND = rINTPND;
+	rSUBSRCPND = rSUBSRCPND;
 }
