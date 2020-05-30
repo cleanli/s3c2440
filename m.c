@@ -359,25 +359,10 @@ void print_binary(uint32_t num)
 }
 
 char lprintf_buf[256];
-void vslprintf(char*s_buf, const char *fmt, ...);
 //void lcd_printf(int x, int y, const char *fmt, ...);
 
-#if 0
-void lprintf(const char *fmt, ...)
-{
-#if 1
-    va_list ap;
-
-    va_start(ap,fmt);
-    vslprintf(lprintf_buf,fmt,ap);
-    putchars(lprintf_buf);
-    va_end(ap);
-#else
-    putchars(fmt);
-#endif
-}
-#endif
-
+#ifndef USE_LIB_VSPRINTF
+void vslprintf(char*s_buf, const char *fmt, ...);
 void vslprintf(char*s_buf, const char *fmt, ...)
 {
     const unsigned char *s;
@@ -431,6 +416,23 @@ void vslprintf(char*s_buf, const char *fmt, ...)
     *sp = 0;
     va_end(ap);
 }
+#endif
+
+#if 0
+void lprintf(const char *fmt, ...)
+{
+#if 1
+    va_list ap;
+
+    va_start(ap,fmt);
+    vslprintf(lprintf_buf,fmt,ap);
+    putchars(lprintf_buf);
+    va_end(ap);
+#else
+    putchars(fmt);
+#endif
+}
+#endif
 
 /*
  *ADC
