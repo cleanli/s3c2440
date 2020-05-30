@@ -27,6 +27,7 @@ ARMCC_FLAGS+=-DGIT_SHA1=\"$(GIT_SHA1)$(DIRTY)$(CLEAN)\"
 
 m.bin:m.elf
 	$(ARMOC) -O binary m.elf m.bin
+	sha256sum m.bin
 	cp m.bin /tmp
 	$(ARMOD) -D -S m.elf > m.asm
 
