@@ -8,12 +8,13 @@
 #include "cs8900.h"
 
 #define INTNUM_S3C2440 32
-interrupt_func isr_list[INTNUM_S3C2440] = {0};
+void draw_line(int x1, int y1, int x2, int y2, int color);
 void interrutp_init();
 void disable_arm_interrupt();
 void enable_arm_interrupt();
 volatile int x_ts_adc_data, y_ts_adc_data;
 volatile int normal_adc_data;
+interrupt_func isr_list[INTNUM_S3C2440] = {0};
 #define BIT_TIMER4     (0x1<<14)
 #define BIT_SUB_ADC    (0x1<<10)
 
@@ -645,26 +646,34 @@ void AdcTS_init()
     rADCDLY=50000;
     rADCCON=(1<<14)+(ADCPRS<<6);
     rADCTSC=0xd3;//wait pen down
-	rINTMSK|=BIT_ADC;
-	rINTSUBMSK|=(BIT_SUB_TC);
 }
 
 void Test_AdcTs(void)
 {
+    int x, y, lastx = -1, lasty;
     AdcTS_init();
 
+    x_ts_adc_data = -1;
+    y_ts_adc_data = -1;
 	Uart_Printf("\nType any key to exit!\n");
 	Uart_Printf("\nStylus Down, please...... \n");
     while(!getkey()){
-        if(rSUBSRCPND & BIT_SUB_TC){
-            TS_handle();
+        if(y_ts_adc_data > 0){
+            x = transfer_to_xy_ord(x_ts_adc_data, 320);
+            y = transfer_to_xy_ord(y_ts_adc_data, 240);
+            y = 240 - y;
+            lprint("x %u, y %u\n", x,y);
+            draw_sq(x, y, x+20, y+20, 0x7e0);
+            if(lastx >= 0){
+                draw_line(lastx, lasty, x, y, 0x7e0);
+            }
+            x_ts_adc_data = -1;
+            y_ts_adc_data = -1;
+            lastx = x;
+            lasty = y;
         }
     }
-	//Uart_Getch();
-    //if(getkey())return;
 
-	rINTSUBMSK|=BIT_SUB_TC;
-	rINTMSK|=BIT_ADC;
 	Uart_Printf("[Touch Screen Test.]\n");
 
 }
@@ -1367,7 +1376,12 @@ void lcddraw(unsigned char *p)
     lcd_drawing();
 }
 
-void adctest(unsigned char *p)
+void tstest(unsigned char *p)
+{
+    Test_AdcTs();
+}
+
+void adc(unsigned char *p)
 {
     Test_Adc();
 }
@@ -1393,7 +1407,7 @@ uint server_ip = IPADDR(192, 168, 58, 43);
 const unsigned char cs8900_mac[]={0x00, 0x43, 0x33, 0x2f, 0xde, 0x22};
 static const struct command cmd_list[]=
 {
-    {"adctest",adctest,"adc test"},
+    {"adc",adc,"adc test"},
     {"cpsr",prt,"display the value in CPSR of cpu"},
     {"cpsrw",wprt,"write the value in CPSR of cpu"},
     {"dtoh",dtoh,"transfer from demical to hex"},
@@ -1426,6 +1440,7 @@ static const struct command cmd_list[]=
     {"test",test,"use for debug new command or function"},
     {"tftpget",tftpget,"get file from tftp server"},
     {"tftpput",tftpput,"put file to tftp server from membase"},
+    {"tstest",tstest,"touch screen test"},
     {"w",write_mem,"write mem, also can set mem addr"},
     {NULL, NULL, NULL},
 };
@@ -1991,7 +2006,7 @@ void draw_sq(int x1, int y1, int x2, int y2, int color)
         PutPixel(x2,y,color);
     }while(y!=y2);
 }
-#if 0
+
 void draw_line(int x1, int y1, int x2, int y2, int color)
 {
     float lv;
@@ -2018,7 +2033,6 @@ void draw_line(int x1, int y1, int x2, int y2, int color)
         }while(y!=y2);
     }
 }
-#endif
 
 /*
  * uboot register value of LCD control
@@ -2395,11 +2409,11 @@ void adc_isr()
     if(rSUBSRCPND & BIT_SUB_TC){
         if(rADCDAT0&0x8000)
         {
-            Uart_Printf("Stylus Up!\n");
+            //Uart_Printf("Stylus Up!\n");
             rADCTSC=0xd3;//wait pen down
         }
         else{
-            Uart_Printf("\nStylus Down!\n");
+            //Uart_Printf("\nStylus Down!\n");
 
             //pen down, prepare ADC
             rADCTSC=(1<<3)|(1<<2);
@@ -2423,7 +2437,7 @@ void adc_isr()
             else{
                 x_ts_adc_data=(tmp&0x3ff);
                 y_ts_adc_data=(rADCDAT1&0x3ff);
-                Uart_Printf("XP=%x, YP=%x\n", x_ts_adc_data, y_ts_adc_data);
+                Uart_Printf("\nXP=%x, YP=%x\n", x_ts_adc_data, y_ts_adc_data);
                 rADCTSC=0x1d3;//wait pen up
             }
         }
