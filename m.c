@@ -6,6 +6,8 @@
 #include "xmodem.h"
 #include "debug.h"
 
+#define BIT_TIMER4     (0x1<<14)
+
 #define rGPFCON    (*(volatile unsigned *)0x56000050) //Port F control
 #define rGPFDAT    (*(volatile unsigned *)0x56000054) //Port F data
 #define rGPFUP     (*(volatile unsigned *)0x56000058) //Pull-up control F
@@ -152,6 +154,7 @@ void Lcd_Tft_320X240_Init_from_uboot( void );
 void draw_sq(int x1, int y1, int x2, int y2, int color);
 
 uint32_t whichUart;
+uint32_t timer4_click;
 void s3c2440_serial_send_byte(unsigned char c)
 {
         while(!(rUTRSTAT0 & 0x2));
@@ -987,15 +990,15 @@ error:
 
 void test(unsigned char *p)
 {
-    char t[128];
-    vslprintf(t, "abc%sdcd\r\n", "0000");
-    putchars(t);
-    vslprintf(t, "abc%udcd\r\n", 400);
-    putchars(t);
-    vslprintf(t, "abc%xdcd\r\n", 400);
-    putchars(t);
-    vslprintf(t, "abc%xd%uc%sd\r\n", 400, 400, "zzz");
-    putchars(t);
+    char s[128];
+    uint32_t t = 0;
+    while(!getkey()){
+        if(timer4_click != t){
+            vslprintf(s, "%u\r", timer4_click);
+            putchars(s);
+            t = timer4_click;
+        }
+    }
 }
 
 void finddata(unsigned char *p)
@@ -1505,6 +1508,7 @@ void some_init()
     LCD_BUFER = (volatile unsigned short*)VIDEO_FB_ADRS;
     whichUart = 0;
     Lcd_Tft_320X240_Init_from_uboot();
+    rINTMSK &= ~BIT_TIMER4;
 }
 
 int enter_confirm()
@@ -1573,6 +1577,7 @@ int main(void)
     Test_Adc();
     Test_AdcTs();
 #endif
+    timer4_click = 0;
     enable_arm_interrupt();
     run_clean_os();
     disable_arm_interrupt();
@@ -2352,8 +2357,12 @@ void lcd_printf(int x, int y, const char *fmt, ...)
 
 void do_irq ()
 {
-	lprintf ("irq: SRCPND %x \n", rSRCPND);
-	lprintf ("irq: INTPND %x \n", rINTPND);
+	//lprintf ("irq: SRCPND %x \n", rSRCPND);
+	//lprintf ("irq: INTPND %x \n", rINTPND);
+    if(BIT_TIMER4 & rINTPND){
+        timer4_click++;
+        //timer4 interrupt
+    }
 	rSRCPND = rSRCPND;
 	rINTPND = rINTPND;
 }
