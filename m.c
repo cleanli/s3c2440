@@ -518,7 +518,7 @@ void Test_Adc(void)
 
     Uart_Printf("The ADC_IN are adjusted to the following values.\n");        
     Uart_Printf("Push any key to exit!\n");    
-    Uart_Printf("ADC conv. freq.=%d(Hz)\n",(int)(PCLK/(ADCPRS+1.)));
+    Uart_Printf("ADC conv. freq.=%u(Hz)\n",(int)(PCLK/(ADCPRS+1.)));
     
 	Lcd_ClearScr(back_color);	//fill all screen with some color
     for(i=0;i<4;i++){
@@ -527,14 +527,21 @@ void Test_Adc(void)
     for(i=0;i<4;i++){
         draw_line(0, 60*i, 320, 60*i, front_color);
     }
+    //reg init
+    rADCCON=(1<<14)+(ADCPRS<<6)+(1<<3);
+    rADCTSC = rADCTSC & 0xfb;
     lprintf("start tc %u\n", timer4_click);
     while(n--)
     {
-        a0=ReadAdc(0);
-        a1=ReadAdc(1);
-        a0>>=3;
+        rADCCON|=0x1;
+        while(rADCCON & 0x1);
+        while(!(rADCCON & 0x8000));
+        a1 = (rADCDAT0&0x3ff);
+        //a0=ReadAdc(0);
+        //a1=ReadAdc(1);
+        //a0>>=3;
         a1>>=2;
-        adc_data0[tct] = a0;
+        //adc_data0[tct] = a0;
         adc_data1[tct] = a1;
         tct++;
         //Uart_Printf("AIN0: %X,   AIN1: %X\n", a0 ,a1);
@@ -559,7 +566,7 @@ void Test_Adc(void)
     n = 320;
     while(n--){
         if(n > 1){
-            draw_line(n, adc_data0[n], n-1, adc_data0[n-1], track0_color);
+            //draw_line(n, adc_data0[n], n-1, adc_data0[n-1], track0_color);
             draw_line(n, adc_data1[n], n-1, adc_data1[n-1], track1_color);
         }
     }
