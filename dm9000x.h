@@ -5,6 +5,8 @@
 #ifndef _DM9000X_H
 #define _DM9000X_H
 
+#include "debug.h"
+#include "common.h"
 #define DM9000_ID		0x90000A46
 #define DM9000_PKT_MAX		1536	/* Received packet max size */
 #define DM9000_PKT_RDY		0x01	/* Packet ready to receive */
@@ -137,40 +139,5 @@
 #define GPCR_GPIO0_OUT		(1<<0)
 
 #define GPR_PHY_PWROFF		(1<<0)
-
-#define CONFIG_DM9000_BASE       0x19000300
-#define DM9000_IO                CONFIG_DM9000_BASE
-#define DM9000_DATA              (CONFIG_DM9000_BASE + 4)
-#define CONFIG_DM9000_NO_SROM 1
-#define CONFIG_SYS_HZ                   1000
-
-/*
- * Generic virtual read/write.  Note that we don't support half-word
- * read/writes.  We define __arch_*[bl] here, and leave __arch_*w
- * to the architecture specific code.
- */
-#define __arch_getb(a)			(*(volatile unsigned char *)(a))
-#define __arch_getw(a)			(*(volatile unsigned short *)(a))
-#define __arch_getl(a)			(*(volatile unsigned int *)(a))
-
-#define __arch_putb(v,a)		(*(volatile unsigned char *)(a) = (v))
-#define __arch_putw(v,a)		(*(volatile unsigned short *)(a) = (v))
-#define __arch_putl(v,a)		(*(volatile unsigned int *)(a) = (v))
-
-#define __raw_writeb(v,a)		__arch_putb(v,a)
-#define __raw_writew(v,a)		__arch_putw(v,a)
-#define __raw_writel(v,a)		__arch_putl(v,a)
-
-#define __raw_readb(a)			__arch_getb(a)
-#define __raw_readw(a)			__arch_getw(a)
-#define __raw_readl(a)			__arch_getl(a)
-
-#define writeb(v,a)			__arch_putb(v,a)
-#define writew(v,a)			__arch_putw(v,a)
-#define writel(v,a)			__arch_putl(v,a)
-
-#define readb(a)			__arch_getb(a)
-#define readw(a)			__arch_getw(a)
-#define readl(a)			__arch_getl(a)
 
 #endif

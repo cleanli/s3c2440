@@ -102,7 +102,7 @@ struct eth_device {
 
 	int  (*init) (struct eth_device*, bd_t*);
 	int  (*send) (struct eth_device*, volatile void* packet, int length);
-	int  (*recv) (struct eth_device*);
+	int  (*recv) (struct eth_device*, volatile void* packet);
 	void (*halt) (struct eth_device*);
 #ifdef CONFIG_MCAST_TFTP
 	int (*mcast) (struct eth_device*, u32 ip, u8 set);
@@ -260,23 +260,6 @@ typedef struct
 /* Codes for REDIRECT. */
 #define ICMP_REDIR_NET		0	/* Redirect Net			*/
 #define ICMP_REDIR_HOST		1	/* Redirect Host		*/
-
-typedef struct icmphdr {
-	uchar		type;
-	uchar		code;
-	ushort		checksum;
-	union {
-		struct {
-			ushort	id;
-			ushort	sequence;
-		} echo;
-		ulong	gateway;
-		struct {
-			ushort	__unused;
-			ushort	mtu;
-		} frag;
-	} un;
-} ICMP_t;
 
 
 /*

@@ -67,6 +67,8 @@ TODO: external MII is not functional, only internal at the moment.
 
 /* #define CONFIG_DM9000_DEBUG */
 
+void udelay (unsigned long usec);
+ulong get_timer(ulong base);
 #ifdef CONFIG_DM9000_DEBUG
 #define DM9000_DBG(fmt,args...) lprintf(fmt, ##args)
 #define DM9000_DMP_PACKET(func,packet,length)  \
@@ -453,9 +455,9 @@ static void dm9000_halt(struct eth_device *netdev)
 /*
   Received a packet and pass to upper layer
 */
-static int dm9000_rx(struct eth_device *netdev)
+static int dm9000_rx(struct eth_device *netdev, volatile void * rcv_buf)
 {
-	u8 rxbyte, *rdptr = (u8 *) NetRxPackets[0];
+	u8 rxbyte, *rdptr = (u8*)rcv_buf;
 	u16 RxStatus, RxLen = 0;
 	struct board_info *db = &dm9000_info;
 
@@ -515,8 +517,6 @@ static int dm9000_rx(struct eth_device *netdev)
 		} else {
 			DM9000_DMP_PACKET(__func__ , rdptr, RxLen);
 
-			DM9000_DBG("passing packet to upper layer\n");
-			NetReceive(NetRxPackets[0], RxLen);
 		}
 	}
 	return 0;
@@ -550,22 +550,8 @@ void dm9000_write_srom_word(int offset, u16 val)
 static void dm9000_get_enetaddr(struct eth_device *dev)
 {
 	int i;
-	char *end, *tmp = getenv("ethaddr");
-
-	if(tmp){
-		for (i = 0; i < 6; i++){
-			dev->enetaddr[i] = simple_strtoul(tmp, &end, 16);
-			tmp = end + 1;
-		}
-		return;
-	}
-#if !defined(CONFIG_DM9000_NO_SROM)
-	for (i = 0; i < 3; i++)
-		dm9000_read_srom_word(i, dev->enetaddr + (2 * i));
-#else
 	for (i = 0; i < 6; i++)
 		dev->enetaddr[i] = mac[i];
-#endif
 }
 
 /*
@@ -641,7 +627,7 @@ int dm9000_initialize(bd_t *bis)
 	dev->recv = dm9000_rx;
 	strcpy(dev->name, "dm9000");
 
-	eth_register(dev);
+	//eth_register(dev);
 
 	return 0;
 }
