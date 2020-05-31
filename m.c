@@ -8,6 +8,8 @@
 #include "cs8900.h"
 
 #define INTNUM_S3C2440 32
+static void PutPixel(U32 x,U32 y,U32 c);
+static void Lcd_ClearScr(U16 c);
 void draw_line(int x1, int y1, int x2, int y2, int color);
 void interrutp_init();
 void disable_arm_interrupt();
@@ -155,8 +157,6 @@ interrupt_func isr_list[INTNUM_S3C2440] = {0};
 #endif
 
 
-typedef unsigned int U32;
-typedef unsigned short int U16;
 
 void delay(U32 tt);
 void Lcd_Tft_320X240_Init( void );
@@ -499,11 +499,19 @@ int ReadAdc(int ch)
     return (rADCDAT0&0x3ff);
 }
 
+u8 adc_data0[320];
+u8 adc_data1[320];
 void Test_Adc(void)
 {
     uint regbak1, regbak2;
     int a0=0,a1=0;
     int i,j;
+    int v0last=-1, v1last=-1, tct=0;
+    uint back_color = 0x0000;
+    uint front_color = 0xffff;
+    uint track0_color = 0x0fff;
+    uint track1_color = 0xf0ff;
+    uint n = 320;
 
     regbak1 = rADCCON;
     regbak2 = rADCTSC;
@@ -512,17 +520,48 @@ void Test_Adc(void)
     Uart_Printf("Push any key to exit!\n");    
     Uart_Printf("ADC conv. freq.=%d(Hz)\n",(int)(PCLK/(ADCPRS+1.)));
     
-    while(Uart_GetKey()==0)
-    {
-
-    a0=ReadAdc(0);
-    a1=ReadAdc(1);
-    Uart_Printf("AIN0: %X,   AIN1: %X\n", a0 ,a1);
-   
-    for (i=0;i<3000;i++)
-    {
-    	for (j=0;j<1000;j++) ;
+	Lcd_ClearScr(back_color);	//fill all screen with some color
+    for(i=0;i<4;i++){
+        draw_line(80*i, 0, 80*i, 240, front_color);
     }
+    for(i=0;i<4;i++){
+        draw_line(0, 60*i, 320, 60*i, front_color);
+    }
+    lprintf("start tc %u\n", timer4_click);
+    while(n--)
+    {
+        a0=ReadAdc(0);
+        a1=ReadAdc(1);
+        a0>>=3;
+        a1>>=2;
+        adc_data0[tct] = a0;
+        adc_data1[tct] = a1;
+        tct++;
+        //Uart_Printf("AIN0: %X,   AIN1: %X\n", a0 ,a1);
+#if 0
+        if(v0last>=0){
+            lprintf("%u %u %u\n", tct, v0last, a0);
+            draw_line(tct-1, v0last, tct, a0, track0_color);
+        }
+        if(v1last>=0){
+            draw_line(tct, v1last, tct, a1, track1_color);
+        }
+        v0last = a0;
+        v1last = a1;
+
+        for (i=0;i<300;i++)
+        {
+            for (j=0;j<1000;j++) ;
+        }
+#endif
+    }
+    lprintf("end tc %u\n", timer4_click);
+    n = 320;
+    while(n--){
+        if(n > 1){
+            draw_line(n, adc_data0[n], n-1, adc_data0[n-1], track0_color);
+            draw_line(n, adc_data1[n], n-1, adc_data1[n-1], track1_color);
+        }
     }
     
     rADCCON = regbak1;
@@ -2011,6 +2050,8 @@ void draw_line(int x1, int y1, int x2, int y2, int color)
 {
     float lv;
     int d, x, y;
+    //lprintf("dl %u %u %u %u\n",x1,y1,x2,y2);
+    PutPixel(x1,y1,color);
     if(diff(x1,x2)>diff(y1,y2)){
         d=(x2-x1)/diff(x1,x2);
         lv = (float)(y2-y1)/(x2-x1);
@@ -2018,6 +2059,7 @@ void draw_line(int x1, int y1, int x2, int y2, int color)
         do{
             x += d;
             y = y1+lv*(float)(x-x1);
+            //lprintf("1 %u %u\n",x,y);
             PutPixel(x,y,color);
         }while(x!=x2);
     }
@@ -2029,9 +2071,11 @@ void draw_line(int x1, int y1, int x2, int y2, int color)
         do{
             y += d;
             x = x1+lv*(float)(y-y1);
+            //lprintf("2 %u %u\n",x,y);
             PutPixel(x,y,color);
         }while(y!=y2);
     }
+    PutPixel(x2,y2,color);
 }
 
 /*
