@@ -8,6 +8,8 @@
 #include "cs8900.h"
 
 #define INTNUM_S3C2440 32
+ulong get_PCLK(void);
+ulong get_FCLK(void);
 static void PutPixel(U32 x,U32 y,U32 c);
 static void Lcd_ClearScr(U16 c);
 void draw_line(int x1, int y1, int x2, int y2, int color);
@@ -467,10 +469,12 @@ void lprintf(const char *fmt, ...)
  * */
 #define Uart_Printf lprintf
 #define Uart_GetKey getkey
+/*
 #define FCLK 200000000
 #define HCLK (FCLK/2)
 #define PCLK (HCLK/2)
-#define ADCPRS 9
+*/
+#define ADCPRS 49
 // ADC
 #define rADCCON    (*(volatile unsigned *)0x58000000) //ADC control
 #define rADCTSC    (*(volatile unsigned *)0x58000004) //ADC touch screen control
@@ -503,7 +507,7 @@ u8 adc_data0[320];
 u8 adc_data1[320];
 void Test_Adc(void)
 {
-    uint regbak1, regbak2;
+    uint regbak1, regbak2, regbak3;
     int a0=0,a1=0;
     int i,j;
     int v0last=-1, v1last=-1, tct=0;
@@ -515,10 +519,13 @@ void Test_Adc(void)
 
     regbak1 = rADCCON;
     regbak2 = rADCTSC;
+    regbak3 = rADCDLY;
 
+    rADCDLY = 0xff;
+    Uart_Printf("PCLK %u FCLK %u.\n", get_PCLK(), get_FCLK());
     Uart_Printf("The ADC_IN are adjusted to the following values.\n");        
     Uart_Printf("Push any key to exit!\n");    
-    Uart_Printf("ADC conv. freq.=%u(Hz)\n",(int)(PCLK/(ADCPRS+1.)));
+    Uart_Printf("ADC conv. freq.=%u(Hz)\n",(int)(get_PCLK()/(ADCPRS+1.)));
     
 	Lcd_ClearScr(back_color);	//fill all screen with some color
     for(i=0;i<4;i++){
@@ -573,6 +580,7 @@ void Test_Adc(void)
     
     rADCCON = regbak1;
     rADCTSC = regbak2;
+    rADCDLY = regbak3;
 }
 
 /****
