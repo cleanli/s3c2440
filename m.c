@@ -1614,7 +1614,6 @@ int enter_confirm()
 {
     int ct = 5;
     int ct1 = 0;
-    AdcTS_init();
     lprint("Any key or touch screen in 5 seconds will go CleanOS, or quit...\r\n");
     while(ct){
         if(s3c2440_is_serial_recv()){
@@ -1635,12 +1634,67 @@ int enter_confirm()
     return 0;
 }
 
+void print_message()
+{
+    lprintf("\r\n");
+    lprintf("\r\n");
+    lprintf("---------------------------------|\r\n");
+    lprintf("        Cloud2440 Flash boot part|\r\n");
+    lprintf("---------------------------------|\r\n");
+    lprintf("\r\n");
+    lprintf("0x00000\r\n");
+    lprintf("|           MiniCleanBoot\r\n");
+    lprintf("0x01000\r\n");
+    lprintf("|\r\n");
+    lprintf("|           MiniCB Config\r\n");
+    lprintf("|\r\n");
+    lprintf("0x04000\r\n");
+    lprintf("|\r\n");
+    lprintf("|           Empty\r\n");
+    lprintf("|\r\n");
+    lprintf("0x08000\r\n");
+    lprintf("|\r\n");
+    lprintf("|           Uboot config 1\r\n");
+    lprintf("|\r\n");
+    lprintf("0x0c000\r\n");
+    lprintf("|\r\n");
+    lprintf("|           Uboot config 2\r\n");
+    lprintf("|\r\n");
+    lprintf("0x10000\r\n");
+    lprintf("|\r\n");
+    lprintf("|\r\n");
+    lprintf("|\r\n");
+    lprintf("|           Uboot\r\n");
+    lprintf("|\r\n");
+    lprintf("|\r\n");
+    lprintf("|\r\n");
+    lprintf("0x48000\r\n");
+    lprintf("|\r\n");
+    lprintf("|\r\n");
+    lprintf("|           CleanBoot\r\n");
+    lprintf("|\r\n");
+    lprintf("|\r\n");
+    lprintf("0x60000 -------------------\r\n");
+    lprintf("|\r\n");
+    lprintf("|\r\n");
+    lprintf("|           Kernel\r\n");
+    lprintf(".\r\n");
+    lprintf(".\r\n");
+    lprintf(".\r\n");
+    lprintf("---------------------------------|\r\n");
+    lprintf("        Cloud2440 Flash boot part|\r\n");
+    lprintf("---------------------------------|\r\n");
+}
+
 int main(void)
 {
+    AdcTS_init();
+#if 0
     if(enter_confirm() != 1)
     {
         return 0;
     }
+#endif
     random_init();
     cs8900_init(cs8900_mac);
     some_init();
@@ -1676,6 +1730,7 @@ int main(void)
     Test_Adc();
     Test_AdcTs();
 #endif
+    print_message();
     timer4_click = 0;
     enable_arm_interrupt();
     run_clean_os();
