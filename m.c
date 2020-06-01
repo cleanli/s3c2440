@@ -1455,6 +1455,22 @@ error:
     lprint("error para!\r\ndtoh (demical data)\r\n");
 
 }
+
+void htod(unsigned char *p)
+{
+    uint data,tmp;
+
+    tmp = get_howmany_para(p);
+    if(tmp != 1)
+        goto error;
+    p = str_to_hex(p, &data);
+    lprint("Hex %x Demical %u\r\n", data, data);
+    return;
+
+error:
+    lprint("error para!\r\ndtoh (demical data)\r\n");
+
+}
 #define IPADDR(A, B, C, D) ((A)|(B)<<8|(C)<<16|(D)<<24)
 uint local_ip = IPADDR(192, 168, 58, 60);
 uint server_ip = IPADDR(192, 168, 58, 43);
@@ -1471,6 +1487,7 @@ static const struct command cmd_list[]=
     {"finddata",finddata,"find 32bit data"},
     {"fm",fillmem,"fill memory with data"},
     {"help",print_help,"help message"},
+    {"htod",htod,"transfer to demical from hex"},
     {"lcddraw",lcddraw,"lcd drawing"},
     {"mcp",memcopy,"memory copy"},
     {"nandcp",nandcp, "copy nand data to ram specified addr"},
