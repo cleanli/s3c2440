@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "cs8900.h"
 
+#define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
 #define INTNUM_S3C2440 32
 ulong get_PCLK(void);
 ulong get_FCLK(void);
@@ -474,7 +475,7 @@ void lprintf(const char *fmt, ...)
 #define HCLK (FCLK/2)
 #define PCLK (HCLK/2)
 */
-#define ADCPRS 49
+#define ADCPRS 9
 // ADC
 #define rADCCON    (*(volatile unsigned *)0x58000000) //ADC control
 #define rADCTSC    (*(volatile unsigned *)0x58000004) //ADC touch screen control
@@ -516,12 +517,13 @@ void Test_Adc(void)
     uint track0_color = 0x0fff;
     uint track1_color = 0xf0ff;
     uint n = 320;
+    uint s10mss, s10mse, scts, scte;
 
     regbak1 = rADCCON;
     regbak2 = rADCTSC;
     regbak3 = rADCDLY;
 
-    rADCDLY = 0xff;
+    rADCDLY = 5;
     Uart_Printf("PCLK %u FCLK %u.\n", get_PCLK(), get_FCLK());
     Uart_Printf("The ADC_IN are adjusted to the following values.\n");        
     Uart_Printf("Push any key to exit!\n");    
@@ -540,9 +542,13 @@ void Test_Adc(void)
     lprintf("start tc %u\n", timer4_click);
     while(n--)
     {
+        s10mss = timer4_click;
+        scts = rTCNTO4;
         rADCCON|=0x1;
         while(rADCCON & 0x1);
         while(!(rADCCON & 0x8000));
+        s10mse = timer4_click;
+        scte = rTCNTO4;
         a1 = (rADCDAT0&0x3ff);
         //a0=ReadAdc(0);
         //a1=ReadAdc(1);
@@ -569,7 +575,9 @@ void Test_Adc(void)
         }
 #endif
     }
-    lprintf("end tc %u\n", timer4_click);
+    lprintf("end tc %u rADCDLY %x\n", timer4_click, rADCDLY);
+    lprintf("sss tcrcnt04 %u -- %u\n", s10mss, scts);
+    lprintf("eee tcrcnt04 %u -- %u\n", s10mse, scte);
     n = 320;
     while(n--){
         if(n > 1){
@@ -697,7 +705,6 @@ void TS_handle(void)
 
 void AdcTS_init()
 {
-    rADCDLY=50000;
     rADCCON=(1<<14)+(ADCPRS<<6);
     rADCTSC=0xd3;//wait pen down
 }
@@ -2533,9 +2540,9 @@ void timer4_isr()
     timer4_click++;
 }
 
+u32 saveAdcdly;
 void adc_isr()
 {
-    uint tmp;
     //CDB;
     if(rSUBSRCPND & BIT_SUB_TC){
         if(rADCDAT0&0x8000)
@@ -2548,6 +2555,7 @@ void adc_isr()
 
             //pen down, prepare ADC
             rADCTSC=(1<<3)|(1<<2);
+            saveAdcdly = rADCDLY;
             rADCDLY=40000;
 
             //start ADC
@@ -2559,17 +2567,16 @@ void adc_isr()
         //ADC finish
 		if(rADCCON & 0x8000)
         {
-            tmp = rADCDAT0;
-            //lprintf("dat0 %x\n", tmp);
             if(rADCTSC & (1<<7)){//TS 0x73: Normal 0xD3
                 //normal ADC
-                normal_adc_data=(tmp&0x3ff);
+                normal_adc_data=(rADCDAT0&0x3ff);
             }
             else{
-                x_ts_adc_data=(tmp&0x3ff);
+                x_ts_adc_data=(rADCDAT0&0x3ff);
                 y_ts_adc_data=(rADCDAT1&0x3ff);
                 Uart_Printf("\nXP=%x, YP=%x\n", x_ts_adc_data, y_ts_adc_data);
                 rADCTSC=0x1d3;//wait pen up
+                rADCDLY = saveAdcdly;
             }
         }
         else{
