@@ -47,4 +47,5 @@
 #define __cpu_to_le16(x) ((__u16)(x))
 #define __le16_to_cpu(x) ((__u16)(x))
 
+void udelay (unsigned long usec);
 #endif

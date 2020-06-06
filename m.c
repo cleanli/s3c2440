@@ -4,7 +4,7 @@
 #include <math.h>
 #include "sha256.h"
 #include "xmodem.h"
-#include "debug.h"
+#include "common.h"
 #include "cs8900.h"
 #include "s3c2410.h"
 
@@ -1655,12 +1655,14 @@ int enter_confirm()
             lprint("Uart Key down\r\n");
             return 1;
         }
+#if 0
         if(rSUBSRCPND & BIT_SUB_TC){
             rSUBSRCPND|=BIT_SUB_TC;
             lprint("Touch screen down\r\n");
             return 1;
         }
-        delay(10);
+#endif
+        udelay(25*1000);
         if(ct1++ > 40){
             ct1 = 0;
             lprint("Count down %u\r\n", ct--);
@@ -1721,17 +1723,37 @@ void print_message()
     lprintf("---------------------------------|\r\n");
 }
 
+void run_touch_screen_app()
+{
+    int x, y, lastx = -1, lasty;
+    AdcTS_init();
+
+    x_ts_adc_data = -1;
+    y_ts_adc_data = -1;
+	Uart_Printf("\nStylus Down, please...... \n");
+    while(1){
+        if(y_ts_adc_data > 0){
+            x = transfer_to_xy_ord(x_ts_adc_data, 320);
+            y = transfer_to_xy_ord(y_ts_adc_data, 240);
+            y = 240 - y;
+            lprintf("x %u y %u\n", x,y);
+            if(y > 100){
+                adc(NULL);
+            }
+            else if(y > 0){
+                return;
+            }
+            x_ts_adc_data = -1;
+            y_ts_adc_data = -1;
+        }
+    }
+}
+
 int main(void)
 {
     clk_init();
     timer_init();
     AdcTS_init();
-#if 0
-    if(enter_confirm() != 1)
-    {
-        return 0;
-    }
-#endif
     random_init();
     cs8900_init(cs8900_mac);
     some_init();
@@ -1770,7 +1792,13 @@ int main(void)
     print_message();
     timer4_click = 0;
     enable_arm_interrupt();
-    run_clean_os();
+    if(enter_confirm() != 1)
+    {
+        run_touch_screen_app();
+    }
+    else{
+        run_clean_os();
+    }
     disable_arm_interrupt();
     return 0;
 }

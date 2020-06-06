@@ -59,6 +59,7 @@ TODO: external MII is not functional, only internal at the moment.
 */
 
 #include "type.h"
+#include "common.h"
 #include "debug.h"
 #include "dm9000x.h"
 #include "net.h"
@@ -67,7 +68,6 @@ TODO: external MII is not functional, only internal at the moment.
 
 /* #define CONFIG_DM9000_DEBUG */
 
-void udelay (unsigned long usec);
 ulong get_timer(ulong base);
 #ifdef CONFIG_DM9000_DEBUG
 #define DM9000_DBG(fmt,args...) lprintf(fmt, ##args)
