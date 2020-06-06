@@ -1645,26 +1645,42 @@ void some_init()
     interrutp_init();
 }
 
+void clear_touched()
+{
+    x_ts_adc_data = -1;
+    y_ts_adc_data = -1;
+}
+
+int screen_touched()
+{
+    if(x_ts_adc_data > 0){
+        clear_touched();
+        return 1;
+    }
+    else{
+        return 0;
+    }
+}
+
 int enter_confirm()
 {
     int ct = 5;
     int ct1 = 0;
     lprint("Any key or touch screen in 5 seconds will go CleanOS, or quit...\r\n");
+    clear_touched();
     while(ct){
         if(s3c2440_is_serial_recv()){
             lprint("Uart Key down\r\n");
             return 1;
         }
-#if 0
-        if(rSUBSRCPND & BIT_SUB_TC){
-            rSUBSRCPND|=BIT_SUB_TC;
+        if(screen_touched()){
             lprint("Touch screen down\r\n");
-            return 1;
+            return 2;
         }
-#endif
-        udelay(25*1000);
-        if(ct1++ > 40){
+        udelay(100*1000);
+        if(ct1++ > 10){
             ct1 = 0;
+            lcd_printf(10,10,"Count down %u", ct);
             lprint("Count down %u\r\n", ct--);
         }
     }
@@ -1751,6 +1767,7 @@ void run_touch_screen_app()
 
 int main(void)
 {
+    int ret;
     clk_init();
     timer_init();
     AdcTS_init();
@@ -1792,12 +1809,14 @@ int main(void)
     print_message();
     timer4_click = 0;
     enable_arm_interrupt();
-    if(enter_confirm() != 1)
+    ret=enter_confirm();
+    if(ret == 1)
+    {
+        run_clean_os();
+    }
+    else if(ret == 2)
     {
         run_touch_screen_app();
-    }
-    else{
-        run_clean_os();
     }
     disable_arm_interrupt();
     return 0;
