@@ -59,7 +59,7 @@ int timer_init(void)
 	/* use PWM Timer 4 because it has no output */
 	/* prescaler for Timer 4 is 16 */
 	writel(0x0f00, &timers->TCFG0);
-	if (timer_load_val == 0) {
+	//if (timer_load_val == 0) {
 		/*
 		 * for 10 ms clock period @ PCLK with 4 bit divider = 1/2
 		 * (default) and prescaler = 16. Should be 10390
@@ -67,7 +67,8 @@ int timer_init(void)
 		 */
 		timer_load_val = get_PCLK() / (2 * 16 * 100);
 		timer_clk = get_PCLK() / (2 * 16);
-	}
+        lprintf("timer_load_val %u pclk %u\r\n", timer_load_val, get_PCLK());
+	//}
 	/* load value for 10 ms timeout */
 	lastdec = timer_load_val;
 	writel(timer_load_val, &timers->TCNTB4);

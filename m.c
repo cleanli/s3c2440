@@ -482,7 +482,7 @@ void lprintf(const char *fmt, ...)
 #define HCLK (FCLK/2)
 #define PCLK (HCLK/2)
 */
-#define ADCPRS 9
+#define ADCPRS 49
 // ADC
 #define rADCCON    (*(volatile unsigned *)0x58000000) //ADC control
 #define rADCTSC    (*(volatile unsigned *)0x58000004) //ADC touch screen control
