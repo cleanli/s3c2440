@@ -6,6 +6,7 @@
 #include "xmodem.h"
 #include "debug.h"
 #include "cs8900.h"
+#include "s3c2410.h"
 
 #define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
 #define INTNUM_S3C2440 32
@@ -1721,7 +1722,7 @@ void print_message()
 
 int main(void)
 {
-    //timer_init();
+    timer_init();
     AdcTS_init();
 #if 0
     if(enter_confirm() != 1)
@@ -2637,4 +2638,33 @@ void do_irq ()
     }
 	rSRCPND = rINTPND;
 	rINTPND = rINTPND;
+}
+
+//according s3c2440 datasheet page 7-21 table, 12M fin, 405.00M out
+#define M_MDIV	0x7f
+#define M_PDIV	0x2
+#define M_SDIV	0x1
+#define U_M_MDIV	0x38
+#define U_M_PDIV	0x2
+#define U_M_SDIV	0x2
+static inline struct s3c24x0_clock_power *s3c24x0_get_base_clock_power(void);
+void clk_init()
+{
+	struct s3c24x0_clock_power * const clk_power =
+					s3c24x0_get_base_clock_power();
+
+	/* to reduce PLL lock time, adjust the LOCKTIME register */
+	clk_power->LOCKTIME = 0xFFFFFF;
+
+	/* configure MPLL */
+	clk_power->MPLLCON = ((M_MDIV << 12) + (M_PDIV << 4) + M_SDIV);
+
+	/* some delay between MPLL and UPLL */
+	delay (4000);
+
+	/* configure UPLL */
+	clk_power->UPLLCON = ((U_M_MDIV << 12) + (U_M_PDIV << 4) + U_M_SDIV);
+
+	/* some delay between MPLL and UPLL */
+	delay (8000);
 }

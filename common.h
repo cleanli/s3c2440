@@ -1,6 +1,7 @@
 #ifndef __COMMON_H
 #define __COMMON_H
 
+#include "debug.h"
 #include "s3c24x0.h"
 #define CONFIG_DM9000_BASE       0x19000300
 #define DM9000_IO                CONFIG_DM9000_BASE
