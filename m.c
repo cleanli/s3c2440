@@ -35,6 +35,10 @@ interrupt_func isr_list[INTNUM_S3C2440] = {0};
 #define rGPDDAT    (*(volatile unsigned *)0x56000034) //Port D data
 #define rGPDUP     (*(volatile unsigned *)0x56000038) //Pull-up control D
                         
+#define rGPGCON    (*(volatile unsigned *)0x56000060) //Port G control
+#define rGPGDAT    (*(volatile unsigned *)0x56000064) //Port G data
+#define rGPGUP     (*(volatile unsigned *)0x56000068) //Pull-up control G
+
 #define rGPECON    (*(volatile unsigned *)0x56000040) //Port E control
 #define rGPEDAT    (*(volatile unsigned *)0x56000044) //Port E data
 #define rGPEUP     (*(volatile unsigned *)0x56000048) //Pull-up control E
@@ -163,7 +167,7 @@ interrupt_func isr_list[INTNUM_S3C2440] = {0};
 
 void delay(U32 tt);
 void Lcd_Tft_320X240_Init( void );
-void Lcd_Tft_320X240_Init_from_uboot( void );
+void Lcd_Tft_320X240_Init_from_reset( void );
 void draw_sq(int x1, int y1, int x2, int y2, int color);
 
 uint32_t whichUart;
@@ -1630,7 +1634,7 @@ void some_init()
 {
     LCD_BUFER = (volatile unsigned short*)VIDEO_FB_ADRS;
     whichUart = 0;
-    Lcd_Tft_320X240_Init_from_uboot();
+    Lcd_Tft_320X240_Init_from_reset();
     interrutp_init();
 }
 
@@ -1783,6 +1787,8 @@ static void Lcd_Port_Init(void)
     rGPDUP=0xffffffff; // Disable Pull-up register
     rGPDCON=0xaaaaaaaa; //Initialize VD[15:8]     VD[8]---output
 	
+    rGPGUP = rGPGUP&(~(1<<4))|(1<<4);
+    rGPGCON = rGPGCON&(~(3<<8))|(3<<8);
     #if 0
 	
     //rGPCUP = 0xffffffff; // Disable Pull-up register
@@ -2178,17 +2184,17 @@ void draw_line(int x1, int y1, int x2, int y2, int color)
 4d000010: 0001cb09 19800000 00012c00 00000140    .........,..@...
 */
 static int video_init (void);
-void Lcd_Tft_320X240_Init_from_uboot( void )
+void Lcd_Tft_320X240_Init_from_reset( void )
 {
     lprintf("Lcd_Tft_320X240_Init enter\r\n");
-    //Lcd_Port_Init();
+    Lcd_Port_Init();
 
     Lcd_EnvidOnOff(0);
-	rLCDSADDR1=(((U32)LCD_BUFER>>22)<<21)|M5D((U32)LCD_BUFER>>1);
     //Lcd_Init();
+    video_init();
+	rLCDSADDR1=(((U32)LCD_BUFER>>22)<<21)|M5D((U32)LCD_BUFER>>1);
     Lcd_EnvidOnOff(1);		//turn on vedio
 	Lcd_ClearScr(0xf00f);		//fill all screen with some color
-    video_init();
 
 	//Glib_FilledRectangle( 0, 0, 100, 100,0x0000);		//fill a Rectangle with some color
 #if 0
@@ -2369,17 +2375,17 @@ void set_draw_color(u32 fgcol, u32 bgcol)
 static int video_init (void)
 {
 	/*init framebuffer*/
-#if 0
+#if 1
 	*(volatile unsigned int *)0x4d000060 = 0xf82;
 	*(volatile unsigned int *)0x4d00001c = 0x140;
 	*(volatile unsigned int *)0x4d000018 = 0x12c00;
-	*(volatile unsigned int *)0x4d000014 = 0x19800000;
+	//*(volatile unsigned int *)0x4d000014 = 0x19800000;
 	*(volatile unsigned int *)0x4d000010 = 0x14b09;
 	*(volatile unsigned int *)0x4d00000c = 0x2b;
 	*(volatile unsigned int *)0x4d000008 = 0xa13f00;
 	*(volatile unsigned int *)0x4d000004 = 0x33bc14f;
 	*(volatile unsigned int *)0x4d000000 = 0x3180778;
-	*(volatile unsigned int *)0x4d000000 = 0x3180779;
+	//*(volatile unsigned int *)0x4d000000 = 0x3180779;
 #endif
 
 	video_fb_address = (void *) VIDEO_FB_ADRS;
