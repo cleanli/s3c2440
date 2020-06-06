@@ -11,6 +11,7 @@
 #define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
 #define INTNUM_S3C2440 32
 int timer_init(void);
+void clk_init();
 ulong get_PCLK(void);
 ulong get_FCLK(void);
 static void PutPixel(U32 x,U32 y,U32 c);
@@ -1722,6 +1723,7 @@ void print_message()
 
 int main(void)
 {
+    clk_init();
     timer_init();
     AdcTS_init();
 #if 0
@@ -2647,7 +2649,13 @@ void do_irq ()
 #define U_M_MDIV	0x38
 #define U_M_PDIV	0x2
 #define U_M_SDIV	0x2
-static inline struct s3c24x0_clock_power *s3c24x0_get_base_clock_power(void);
+static inline void asm_delay (unsigned long loops)
+{
+	__asm__ volatile ("1:\n"
+	  "subs %0, %1, #1\n"
+	  "bne 1b":"=r" (loops):"0" (loops));
+}
+
 void clk_init()
 {
 	struct s3c24x0_clock_power * const clk_power =
@@ -2660,11 +2668,13 @@ void clk_init()
 	clk_power->MPLLCON = ((M_MDIV << 12) + (M_PDIV << 4) + M_SDIV);
 
 	/* some delay between MPLL and UPLL */
-	delay (4000);
+	asm_delay (4000);
+    lprintf("w mpll %x\r\n", ((M_MDIV << 12) + (M_PDIV << 4) + M_SDIV));
 
 	/* configure UPLL */
 	clk_power->UPLLCON = ((U_M_MDIV << 12) + (U_M_PDIV << 4) + U_M_SDIV);
 
 	/* some delay between MPLL and UPLL */
-	delay (8000);
+	asm_delay (8000);
+	clk_power->CLKDIVN = 5;//usb 48M, 4:2:1
 }
