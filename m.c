@@ -512,8 +512,9 @@ int ReadAdc(int ch)
     return (rADCDAT0&0x3ff);
 }
 
-u8 adc_data0[320];
-u8 adc_data1[320];
+#define TOTAL_DATA_NUMBER 240
+u8 adc_data0[TOTAL_DATA_NUMBER];
+u8 adc_data1[TOTAL_DATA_NUMBER];
 void Test_Adc(void)
 {
     uint regbak1, regbak2, regbak3;
@@ -524,7 +525,7 @@ void Test_Adc(void)
     uint front_color = 0xffff;
     uint track0_color = 0x0fff;
     uint track1_color = 0xf0ff;
-    uint n = 320;
+    uint n = TOTAL_DATA_NUMBER;
     uint s10mss, s10mse, scts, scte;
 
     regbak1 = rADCCON;
@@ -538,11 +539,11 @@ void Test_Adc(void)
     Uart_Printf("ADC conv. freq.=%u(Hz)\n",(int)(get_PCLK()/(ADCPRS+1.)));
     
 	Lcd_ClearScr(back_color);	//fill all screen with some color
-    for(i=0;i<4;i++){
-        draw_line(80*i, 0, 80*i, 240, front_color);
+    for(i=0;i<5;i++){
+        draw_line(64*i, 0, 64*i, 240, front_color);
     }
     for(i=0;i<4;i++){
-        draw_line(0, 60*i, 320, 60*i, front_color);
+        draw_line(0, 60*i, 256, 60*i, front_color);
     }
     //reg init
     rADCCON=(1<<14)+(ADCPRS<<6)+(1<<3);
@@ -586,11 +587,11 @@ void Test_Adc(void)
     lprintf("end tc %u rADCDLY %x\n", timer4_click, rADCDLY);
     lprintf("sss tcrcnt04 %u -- %u\n", s10mss, scts);
     lprintf("eee tcrcnt04 %u -- %u\n", s10mse, scte);
-    n = 320;
+    n = TOTAL_DATA_NUMBER;
     while(n--){
         if(n > 1){
             //draw_line(n, adc_data0[n], n-1, adc_data0[n-1], track0_color);
-            draw_line(n, adc_data1[n], n-1, adc_data1[n-1], track1_color);
+            draw_line(adc_data1[n], n, adc_data1[n-1], n-1, track1_color);
         }
     }
     
@@ -1745,6 +1746,7 @@ void run_touch_screen_app()
 
     clear_touched();
 	Uart_Printf("\nStylus Down, please...... \n");
+    lcd_printf(10,10,"Please touch screen again!");
     while(1){
         if(screen_touched()){
             x = transfer_to_xy_ord(x_ts_adc_data, 320);
