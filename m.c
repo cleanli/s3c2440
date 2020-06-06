@@ -9,6 +9,7 @@
 
 #define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
 #define INTNUM_S3C2440 32
+int timer_init(void);
 ulong get_PCLK(void);
 ulong get_FCLK(void);
 static void PutPixel(U32 x,U32 y,U32 c);
@@ -958,22 +959,26 @@ error:
 void print_mem(unsigned char *cp, uint length)
 {
     uint i;
+    uint* p_uint = (uint*) cp;
 
     while(length){
-	lprint("\r\n");
-	for(i=0;i<8;i++){
-		puthexch(*cp++);
+        lprint("\r\n");
+        put_hex_uint((uint)p_uint);
+        putch(':');
         putch(' ');
-		length--;
-		if(!length)
-			break;
-	}
+        for(i=0;i<16;i+=4){
+            if(length<4)
+                break;
+            length-=4;
+            put_hex_uint(*p_uint++);
+            putch(' ');
+        }
     }
 }
 
 void pm(unsigned char *p)
 {
-    uint length = 0x80, tmp, i;
+    uint length = 0x100, tmp, i;
 
     tmp = get_howmany_para(p);
     if( tmp > 1)
@@ -984,7 +989,7 @@ void pm(unsigned char *p)
 print:
     lprint("Start print 0x%x mem content @%x:\r\n", length, (uint)mrw_addr);
     print_mem((unsigned char*)mrw_addr, length);
-    lprint("\r\nPrint end @%x.\r\n", (uint)mrw_addr);
+    lprint("\r\n\r\nPrint end @%x.\r\n", (uint)mrw_addr);
     return;
 
 error:
@@ -1716,6 +1721,7 @@ void print_message()
 
 int main(void)
 {
+    //timer_init();
     AdcTS_init();
 #if 0
     if(enter_confirm() != 1)
