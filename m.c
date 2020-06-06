@@ -10,6 +10,7 @@
 
 #define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
 #define INTNUM_S3C2440 32
+void clear_touched();
 int timer_init(void);
 void clk_init();
 ulong get_PCLK(void);
@@ -20,7 +21,7 @@ void draw_line(int x1, int y1, int x2, int y2, int color);
 void interrutp_init();
 void disable_arm_interrupt();
 void enable_arm_interrupt();
-volatile int x_ts_adc_data, y_ts_adc_data;
+volatile int x_ts_adc_data, y_ts_adc_data, touch_up = 0;
 volatile int normal_adc_data;
 interrupt_func isr_list[INTNUM_S3C2440] = {0};
 #define BIT_TIMER4     (0x1<<14)
@@ -619,8 +620,6 @@ void Test_Adc(void)
 
 #define BIT_ADC        (0x1<<31)
 #define BIT_SUB_TC     (0x1<<9)
-
-volatile int x_ts_adc_data, y_ts_adc_data;
 
 #define LESS 0x54
 #define MAX 0x3AA
@@ -1649,12 +1648,12 @@ void clear_touched()
 {
     x_ts_adc_data = -1;
     y_ts_adc_data = -1;
+    touch_up = 0;
 }
 
 int screen_touched()
 {
-    if(x_ts_adc_data > 0){
-        clear_touched();
+    if(touch_up > 0){
         return 1;
     }
     else{
@@ -1744,11 +1743,10 @@ void run_touch_screen_app()
     int x, y, lastx = -1, lasty;
     AdcTS_init();
 
-    x_ts_adc_data = -1;
-    y_ts_adc_data = -1;
+    clear_touched();
 	Uart_Printf("\nStylus Down, please...... \n");
     while(1){
-        if(y_ts_adc_data > 0){
+        if(screen_touched()){
             x = transfer_to_xy_ord(x_ts_adc_data, 320);
             y = transfer_to_xy_ord(y_ts_adc_data, 240);
             y = 240 - y;
@@ -1759,8 +1757,7 @@ void run_touch_screen_app()
             else if(y > 0){
                 return;
             }
-            x_ts_adc_data = -1;
-            y_ts_adc_data = -1;
+            clear_touched();
         }
     }
 }
@@ -2611,6 +2608,7 @@ void adc_isr()
         {
             //Uart_Printf("Stylus Up!\n");
             rADCTSC=0xd3;//wait pen down
+            touch_up = 1;
         }
         else{
             //Uart_Printf("\nStylus Down!\n");
