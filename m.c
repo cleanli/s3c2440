@@ -591,7 +591,7 @@ void Test_Adc(void)
     while(n--){
         if(n > 1){
             //draw_line(n, adc_data0[n], n-1, adc_data0[n-1], track0_color);
-            draw_line(adc_data1[n], n, adc_data1[n-1], n-1, track1_color);
+            draw_line(256 - adc_data1[n], n, 256 - adc_data1[n-1], n-1, track1_color);
         }
     }
     
