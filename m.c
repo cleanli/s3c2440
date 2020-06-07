@@ -28,7 +28,8 @@ volatile int x_ts_adc_data, y_ts_adc_data, touch_up = 0;
 volatile int normal_adc_data;
 interrupt_func isr_list[INTNUM_S3C2440] = {0};
 int total_adc_time_index;
-int total_adc_time_list[]={1,5,10,20,50,100};
+int total_adc_time_list[]={1,2,5,10,20,50,100};
+int debug[16];
 
 // ADC
 #define rADCCON    (*(volatile unsigned *)0x58000000) //ADC control
@@ -550,7 +551,7 @@ uint compute_time_end_us()
     uint ret, tmp, tmp1;
     tmp = rTCNTO4;
     tmp1 = timer4_click;
-    //lprintf("%u %u %u %u\n", timer_start_timer4,timer_start_timer4buf,tmp,tmp1);
+    //lprintf("%u %u %u %u\n", timer_start_timer4,timer_start_timer4buf,tmp1,tmp);
     if(tmp < timer_start_timer4buf){
         ret = timer_start_timer4buf - tmp;
     }
@@ -560,9 +561,33 @@ uint compute_time_end_us()
     }
     ret = ret * 10000 / 0x3dcc;
     tmp = tmp1 - timer_start_timer4;
-    tmp *= 100000;
+    tmp *= 10000;
     ret += tmp;
     return ret;
+}
+
+void ludelay(uint delay_us)
+{
+    uint startct = rTCNTO4;
+    //lprintf("del %u st %u\n", delay_us, startct);
+    uint startct_tick = timer4_click;
+    uint tmp = delay_us * 791 / 500;
+    //lprintf("tmp %u\n", tmp);
+    if(startct > tmp){
+        tmp = startct - tmp;
+        while(rTCNTO4 > tmp);
+        return;
+    }
+    else if(startct == tmp){
+        while(timer4_click == startct_tick);
+        return;
+    }
+    else{
+        tmp = startct+0x3dcc-tmp;
+        while(timer4_click == startct_tick);
+        while(rTCNTO4 > tmp);
+        return;
+    }
 }
 
 #define ADC_DATA_PROCESS(data) (((data)&0x3ff)>>2)
@@ -586,6 +611,7 @@ void Test_Adc(void)
     uint n = TOTAL_DATA_NUMBER;
     uint adc_get_time;
     uint delay_us;
+    uint deb1, deb2;
 
     regbak1 = rADCCON;
     regbak2 = rADCTSC;
@@ -621,7 +647,9 @@ void Test_Adc(void)
             while(!(rADCCON & 0x8000));
             adc_data1[tct++] = rADCDAT0;
             //Uart_Printf("AIN0: %X,   AIN1: %X\n", a0 ,a1);
-            udelay(delay_us);
+            deb1 = rTCNTO4;
+            ludelay(delay_us);
+            deb2 = rTCNTO4;
             rADCCON|=0x1;
         }
     }
@@ -632,9 +660,9 @@ void Test_Adc(void)
     rSUBSRCPND = BIT_SUB_ADC;
     rINTMSK &= ~BIT_ADC;
 
-    lprintf("rADCDLY %x\n", rADCDLY);
+    lprintf("rADCDLY %x deb %u %u\n", rADCDLY, deb1, deb2);
     lprintf("time %u us\n", adc_get_time);
-    lcd_printf(270,5,"%uus", adc_get_time);
+    lcd_printf(240,5,"%uus", adc_get_time);
     n = TOTAL_DATA_NUMBER;
     while(n--){
         if(n > 1){
@@ -1138,15 +1166,13 @@ error:
 
 void test(unsigned char *p)
 {
-    char s[128];
-    uint32_t t = 0;
-    while(!getkey()){
-        if(timer4_click != t){
-            vslprintf(s, "%u\r", timer4_click);
-            putchars(s);
-            t = timer4_click;
-        }
-    }
+    uint deb1, deb2,d;
+    memset(debug, 0, 64);
+    p = str_to_hex(p, &d);
+            deb1 = rTCNTO4;
+            ludelay(d);
+            deb2 = rTCNTO4;
+    lprintf("deb %u %u debug %x\n", deb1, deb2, debug);
 }
 
 void finddata(unsigned char *p)
@@ -1797,9 +1823,7 @@ typedef struct button {
 
 void adc_less_delay()
 {
-    CDB;
     if(total_adc_time_index>0){
-        CDB;
         total_adc_time_index--;
     }
     lprintf("total_adc_time_index %u %u\n", total_adc_time_index, total_adc_time_list[total_adc_time_index]);
@@ -1807,9 +1831,7 @@ void adc_less_delay()
 
 void adc_more_delay()
 {
-    CDB;
-    if(total_adc_time_index<sizeof(total_adc_time_list)/sizeof(int)){
-        CDB;
+    if(total_adc_time_index<(sizeof(total_adc_time_list)/sizeof(int)-1)){
         total_adc_time_index++;
     }
     lprintf("total_adc_time_index %u %u\n", total_adc_time_index, total_adc_time_list[total_adc_time_index]);
