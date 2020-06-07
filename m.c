@@ -533,8 +533,13 @@ int ReadAdc(int ch)
     return (rADCDAT0&0x3ff);
 }
 
+//#define WAVE_DISP_VERTICAL
 #define ADC_DATA_PROCESS(data) (((data)&0x3ff)>>2)
+#ifdef WAVE_DISP_VERTICAL
 #define TOTAL_DATA_NUMBER 240
+#else
+#define TOTAL_DATA_NUMBER 320
+#endif
 uint adc_data0[TOTAL_DATA_NUMBER];
 uint adc_data1[TOTAL_DATA_NUMBER];
 void Test_Adc(void)
@@ -562,12 +567,21 @@ void Test_Adc(void)
     Uart_Printf("ADC conv. freq.=%u(Hz)\n",(int)(get_PCLK()/(ADCPRS+1.)));
     
 	Lcd_ClearScr(back_color);	//fill all screen with some color
+#ifdef WAVE_DISP_VERTICAL
     for(i=0;i<5;i++){
         draw_line(64*i, 0, 64*i, 240, front_color);
     }
     for(i=0;i<4;i++){
         draw_line(0, 60*i, 256, 60*i, front_color);
     }
+#else
+    for(i=0;i<5;i++){
+        draw_line(0, 60*i, 320, 60*i, front_color);
+    }
+    for(i=0;i<4;i++){
+        draw_line(80*i, 0, 80*i, 240, front_color);
+    }
+#endif
     //reg init
     //rADCCON=(1<<14)+(ADCPRS<<6)+(1<<3)+(1<<1);
     rADCCON=(1<<14)+(ADCPRS<<6)+(1<<3);
@@ -606,8 +620,11 @@ void Test_Adc(void)
     n = TOTAL_DATA_NUMBER;
     while(n--){
         if(n > 1){
-            //draw_line(n, adc_data0[n], n-1, adc_data0[n-1], track0_color);
+#ifdef WAVE_DISP_VERTICAL
             draw_line(256 - ADC_DATA_PROCESS(adc_data1[n]), n, 256 - ADC_DATA_PROCESS(adc_data1[n-1]), n-1, track1_color);
+#else
+            draw_line(n, 240-ADC_DATA_PROCESS(adc_data1[n]), n-1, 240-ADC_DATA_PROCESS(adc_data1[n-1]), track0_color);
+#endif
         }
     }
     
