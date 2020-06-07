@@ -10,6 +10,8 @@
 
 #define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
 #define INTNUM_S3C2440 32
+//#define WAVE_DISP_VERTICAL
+void adc_ui_init();
 void mass_adc_get(uint*, uint);
 void clear_touched();
 int timer_init(void);
@@ -561,7 +563,6 @@ uint compute_time_end_us()
     return ret;
 }
 
-//#define WAVE_DISP_VERTICAL
 #define ADC_DATA_PROCESS(data) (((data)&0x3ff)>>2)
 #ifdef WAVE_DISP_VERTICAL
 #define TOTAL_DATA_NUMBER 240
@@ -594,22 +595,6 @@ void Test_Adc(void)
     Uart_Printf("PCLK %u FCLK %u.\n", get_PCLK(), get_FCLK());
     Uart_Printf("ADC conv. freq.=%u(Hz)\n",(int)(get_PCLK()/(ADCPRS+1.)));
     
-	Lcd_ClearScr(back_color);	//fill all screen with some color
-#ifdef WAVE_DISP_VERTICAL
-    for(i=0;i<5;i++){
-        draw_line(64*i, 0, 64*i, 240, front_color);
-    }
-    for(i=0;i<4;i++){
-        draw_line(0, 60*i, 256, 60*i, front_color);
-    }
-#else
-    for(i=0;i<5;i++){
-        draw_line(0, 60*i, 320, 60*i, front_color);
-    }
-    for(i=0;i<4;i++){
-        draw_line(80*i, 0, 80*i, 240, front_color);
-    }
-#endif
     //reg init
     //rADCCON=(1<<14)+(ADCPRS<<6)+(1<<3)+(1<<1);
     rADCCON=(1<<14)+(ADCPRS<<6)+(1<<3);
@@ -1502,6 +1487,7 @@ void tstest(unsigned char *p)
 
 void adc(unsigned char *p)
 {
+    adc_ui_init();
     Test_Adc();
 }
 
@@ -1799,19 +1785,47 @@ button_t adc_ctr_button[]={
     {-1,-1,-1, -1,NULL},
 };
 typedef struct ui_info{
+    p_func init;
     button_t* button_info;
 } ui_t;
 
 ui_t adc_ui={
+    adc_ui_init,
     adc_ctr_button,
 };
+
+void adc_ui_init()
+{
+    uint back_color = 0x0000;
+    uint front_color = 0xffff;
+    uint i;
+	Lcd_ClearScr(back_color);	//fill all screen with some color
+#ifdef WAVE_DISP_VERTICAL
+    for(i=0;i<5;i++){
+        draw_line(64*i, 0, 64*i, 240, front_color);
+    }
+    for(i=0;i<4;i++){
+        draw_line(0, 60*i, 256, 60*i, front_color);
+    }
+#else
+    for(i=0;i<5;i++){
+        draw_line(0, 60*i, 320, 60*i, front_color);
+    }
+    for(i=0;i<4;i++){
+        draw_line(80*i, 0, 80*i, 240, front_color);
+    }
+#endif
+}
 
 ui_t*current_ui;
 void ui_init()
 {
+    //lprintf("curr ui %x\n", current_ui);
     button_t* p_bt = current_ui->button_info;
+    current_ui->init();
+    //lprintf("but x1 %x\n", p_bt->x1);
     while(p_bt->x1 >=0){
-        draw_sq(p_bt->x1, p_bt->y1, p_bt->x2, p_bt->y2, 0xf000);
+        draw_sq(p_bt->x1, p_bt->y1, p_bt->x2, p_bt->y2, 0xffff);
         p_bt++;
     }
 }
@@ -1838,7 +1852,8 @@ void run_touch_screen_app()
             y = 240 - y;
             lprintf("x %u y %u\n", x,y);
             if(y > 100){
-                adc(NULL);
+                ui_init();
+                Test_Adc();
             }
             else if(y > 0){
                 return;
@@ -2267,6 +2282,7 @@ void Lcd_Tft_320X240_Init( void )
 void draw_sq(int x1, int y1, int x2, int y2, int color)
 {
     int d, x, y;
+    //lprintf("%u %u %u %u %u\n", x1, y1, x2 ,y2, color);
     d = 1;
     if(x1>x2)d=-1;
     x=x1;
