@@ -15,6 +15,7 @@ typedef uint16_t ushort;
 typedef uint8_t u8;
 typedef uint8_t uchar;
 typedef void (*interrupt_func)(void);
+typedef void (*p_func)(void);
 
 typedef struct bd_info {
     int			bi_baudrate;	/* serial console baudrate */

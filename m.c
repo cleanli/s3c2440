@@ -1786,6 +1786,40 @@ void print_message()
     lprintf("---------------------------------|\r\n");
 }
 
+typedef struct button {
+    int x1;
+    int y1;
+    int x2;
+    int y2;
+    p_func click_func;
+} button_t;
+
+button_t adc_ctr_button[]={
+    {5,235,75, 200,NULL},
+    {-1,-1,-1, -1,NULL},
+};
+typedef struct ui_info{
+    button_t* button_info;
+} ui_t;
+
+ui_t adc_ui={
+    adc_ctr_button,
+};
+
+ui_t*current_ui;
+void ui_init()
+{
+    button_t* p_bt = current_ui->button_info;
+    while(p_bt->x1 >=0){
+        draw_sq(p_bt->x1, p_bt->y1, p_bt->x2, p_bt->y2, 0xf000);
+        p_bt++;
+    }
+}
+
+void ui_running()
+{
+}
+
 void run_touch_screen_app()
 {
     int x, y, lastx = -1, lasty;
@@ -1794,7 +1828,10 @@ void run_touch_screen_app()
     clear_touched();
 	Uart_Printf("\nStylus Down, please...... \n");
     lcd_printf(10,10,"Please touch screen again!");
+    current_ui = & adc_ui;
+    ui_init();
     while(1){
+        ui_running();
         if(screen_touched()){
             x = transfer_to_xy_ord(x_ts_adc_data, 320);
             y = transfer_to_xy_ord(y_ts_adc_data, 240);
