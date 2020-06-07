@@ -800,7 +800,7 @@ uint get_howmany_para(unsigned char *s);
 #define rWTDAT   (*(volatile unsigned *)0x53000004) //Watch-dog timer data
 #define rWTCNT   (*(volatile unsigned *)0x53000008) //Eatch-dog timer count
 
-void reboot(unsigned char *p)
+void raw_reboot()
 {
 	lprintf("rebooting...\r\n");
 	/* Disable watchdog */
@@ -811,7 +811,11 @@ void reboot(unsigned char *p)
 
 	/* Enable watchdog timer; assert reset at timer timeout */
 	rWTCON = 0x0021;
+}
 
+void reboot(unsigned char *p)
+{
+    raw_reboot();
 	while(1);	/* loop forever and wait for reset to happen */
 
 }
@@ -1783,7 +1787,10 @@ typedef struct button {
 } button_t;
 
 button_t adc_ctr_button[]={
-    {5,235,75, 200, Test_Adc, 1, "Trigger"},
+    {5,235,75, 210, Test_Adc, 1, "Trigger"},
+    {85,235,155, 210, NULL, 1, "Faster"},
+    {165,235,235, 210, NULL, 1, "Slower"},
+    {245,235,315, 210, raw_reboot, 1, "Reboot"},
     {-1,-1,-1, -1,NULL, 0, NULL},
 };
 typedef struct ui_info{
