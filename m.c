@@ -10,6 +10,7 @@
 
 #define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
 #define INTNUM_S3C2440 32
+void mass_adc_get(uint*, uint);
 void clear_touched();
 int timer_init(void);
 void clk_init();
@@ -532,9 +533,10 @@ int ReadAdc(int ch)
     return (rADCDAT0&0x3ff);
 }
 
+#define ADC_DATA_PROCESS(data) (((data)&0x3ff)>>2)
 #define TOTAL_DATA_NUMBER 240
-u8 adc_data0[TOTAL_DATA_NUMBER];
-u8 adc_data1[TOTAL_DATA_NUMBER];
+uint adc_data0[TOTAL_DATA_NUMBER];
+uint adc_data1[TOTAL_DATA_NUMBER];
 void Test_Adc(void)
 {
     uint regbak1, regbak2, regbak3;
@@ -552,6 +554,7 @@ void Test_Adc(void)
     regbak2 = rADCTSC;
     regbak3 = rADCDLY;
 
+    memset(adc_data1, 0, TOTAL_DATA_NUMBER*4);
     rADCDLY = 2;
     Uart_Printf("PCLK %u FCLK %u.\n", get_PCLK(), get_FCLK());
     Uart_Printf("The ADC_IN are adjusted to the following values.\n");        
@@ -566,46 +569,31 @@ void Test_Adc(void)
         draw_line(0, 60*i, 256, 60*i, front_color);
     }
     //reg init
+    //rADCCON=(1<<14)+(ADCPRS<<6)+(1<<3)+(1<<1);
     rADCCON=(1<<14)+(ADCPRS<<6)+(1<<3);
     rADCTSC = rADCTSC & 0xfb;
     lprintf("start tc %u %u\n", timer4_click, rTCNTO4);
     //close adc int
     rINTMSK |= BIT_ADC;
+    //read
+    //a1 = (rADCDAT0&0x3ff);
+    lprintf("adc_data1 %x\n", adc_data1);
+    rADCCON|=0x1;
+#if 1
+    mass_adc_get(adc_data1, n);
+#else
     while(n--)
     {
-        s10mss = timer4_click;
-        scts = rTCNTO4;
+        //s10mss = timer4_click;
+        //scts = rTCNTO4;
         rADCCON|=0x1;
-        while(rADCCON & 0x1);
         while(!(rADCCON & 0x8000));
-        s10mse = timer4_click;
-        scte = rTCNTO4;
-        a1 = (rADCDAT0&0x3ff);
-        //a0=ReadAdc(0);
-        //a1=ReadAdc(1);
-        //a0>>=3;
-        a1>>=2;
-        //adc_data0[tct] = a0;
-        adc_data1[tct] = a1;
-        tct++;
+        //s10mse = timer4_click;
+        //scte = rTCNTO4;
+        adc_data1[tct++] = rADCDAT0;
         //Uart_Printf("AIN0: %X,   AIN1: %X\n", a0 ,a1);
-#if 0
-        if(v0last>=0){
-            lprintf("%u %u %u\n", tct, v0last, a0);
-            draw_line(tct-1, v0last, tct, a0, track0_color);
-        }
-        if(v1last>=0){
-            draw_line(tct, v1last, tct, a1, track1_color);
-        }
-        v0last = a0;
-        v1last = a1;
-
-        for (i=0;i<300;i++)
-        {
-            for (j=0;j<1000;j++) ;
-        }
-#endif
     }
+#endif
     //enable adc int
     rSUBSRCPND = BIT_SUB_TC;
     rSUBSRCPND = BIT_SUB_ADC;
@@ -619,7 +607,7 @@ void Test_Adc(void)
     while(n--){
         if(n > 1){
             //draw_line(n, adc_data0[n], n-1, adc_data0[n-1], track0_color);
-            draw_line(256 - adc_data1[n], n, 256 - adc_data1[n-1], n-1, track1_color);
+            draw_line(256 - ADC_DATA_PROCESS(adc_data1[n]), n, 256 - ADC_DATA_PROCESS(adc_data1[n-1]), n-1, track1_color);
         }
     }
     

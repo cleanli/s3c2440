@@ -5,6 +5,7 @@
 .globl enable_arm_interrupt
 .globl get_psr
 .globl w_psr
+.globl mass_adc_get
 
 _start:	b      main
 	ldr	pc, _undefined_instruction
@@ -66,6 +67,33 @@ w_psr:
 	msr 	cpsr, r0
 	mov	pc, lr
 
+mass_adc_get:
+    push {r2,r3}
+
+    mov r3, #0x58000000
+    //while(!(rADCCON & 0x8000));
+wait_adc_done:
+    ldr r2, [r3]
+    and r2, r2, #0x8000
+    cmp r2, #0
+    beq wait_adc_done
+
+    //adc_data1[tct++] = rADCDAT0
+    ldr r2, [r3, #0x0c]
+    str r2, [r0], #4
+
+    //rADCCON|=0x1
+trigger_adc:
+    ldr r2, [r3]
+    orr r2, r2, #1
+    str r2, [r3]
+
+    sub r1, r1, #1
+    cmp r1, #0
+    bne wait_adc_done
+
+    pop {r2,r3}
+    mov pc, lr
 /*
  *************************************************************************
  *
