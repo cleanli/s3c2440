@@ -626,7 +626,7 @@ void Test_Adc(void)
     
     //reg init
     //rADCCON=(1<<14)+(ADCPRS<<6)+(1<<3)+(1<<1);
-    rADCCON=(1<<14)+(ADCPRS<<6)+(1<<3);
+    rADCCON=(1<<14)+(ADCPRS<<6)+(0<<3);
     rADCTSC = rADCTSC & 0xfb;
     //close adc int
     rINTMSK |= BIT_ADC;
@@ -669,7 +669,7 @@ void Test_Adc(void)
 #ifdef WAVE_DISP_VERTICAL
             draw_line(256 - ADC_DATA_PROCESS(adc_data1[n]), n, 256 - ADC_DATA_PROCESS(adc_data1[n-1]), n-1, track1_color);
 #else
-            draw_line(n, 240-ADC_DATA_PROCESS(adc_data1[n]), n-1, 240-ADC_DATA_PROCESS(adc_data1[n-1]), track0_color);
+            draw_line(n, 230-ADC_DATA_PROCESS(adc_data1[n]), n-1, 230-ADC_DATA_PROCESS(adc_data1[n-1]), track0_color);
 #endif
         }
     }
