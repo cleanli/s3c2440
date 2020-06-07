@@ -24,6 +24,26 @@ void enable_arm_interrupt();
 volatile int x_ts_adc_data, y_ts_adc_data, touch_up = 0;
 volatile int normal_adc_data;
 interrupt_func isr_list[INTNUM_S3C2440] = {0};
+
+// ADC
+#define rADCCON    (*(volatile unsigned *)0x58000000) //ADC control
+#define rADCTSC    (*(volatile unsigned *)0x58000004) //ADC touch screen control
+#define rADCDLY    (*(volatile unsigned *)0x58000008) //ADC start or Interval Delay
+#define rADCDAT0   (*(volatile unsigned *)0x5800000c) //ADC conversion data 0
+#define rADCDAT1   (*(volatile unsigned *)0x58000010) //ADC conversion data 1
+
+#define BIT_ADC        (0x1<<31)
+#define BIT_SUB_TC     (0x1<<9)
+// INTERRUPT
+#define rSRCPND     (*(volatile unsigned *)0x4a000000) //Interrupt request status
+#define rINTMOD     (*(volatile unsigned *)0x4a000004) //Interrupt mode control
+#define rINTMSK     (*(volatile unsigned *)0x4a000008) //Interrupt mask control
+#define rPRIORITY   (*(volatile unsigned *)0x4a00000a) //IRQ priority control
+#define rINTPND     (*(volatile unsigned *)0x4a000010) //Interrupt request status
+#define rINTOFFSET  (*(volatile unsigned *)0x4a000014) //Interruot request source offset
+#define rSUBSRCPND  (*(volatile unsigned *)0x4a000018) //Sub source pending
+#define rINTSUBMSK  (*(volatile unsigned *)0x4a00001c) //Interrupt sub mask
+
 #define BIT_TIMER4     (0x1<<14)
 #define BIT_SUB_ADC    (0x1<<10)
 
@@ -483,7 +503,7 @@ void lprintf(const char *fmt, ...)
 #define HCLK (FCLK/2)
 #define PCLK (HCLK/2)
 */
-#define ADCPRS 49
+#define ADCPRS 24
 // ADC
 #define rADCCON    (*(volatile unsigned *)0x58000000) //ADC control
 #define rADCTSC    (*(volatile unsigned *)0x58000004) //ADC touch screen control
@@ -532,7 +552,7 @@ void Test_Adc(void)
     regbak2 = rADCTSC;
     regbak3 = rADCDLY;
 
-    rADCDLY = 5;
+    rADCDLY = 2;
     Uart_Printf("PCLK %u FCLK %u.\n", get_PCLK(), get_FCLK());
     Uart_Printf("The ADC_IN are adjusted to the following values.\n");        
     Uart_Printf("Push any key to exit!\n");    
@@ -548,7 +568,9 @@ void Test_Adc(void)
     //reg init
     rADCCON=(1<<14)+(ADCPRS<<6)+(1<<3);
     rADCTSC = rADCTSC & 0xfb;
-    lprintf("start tc %u\n", timer4_click);
+    lprintf("start tc %u %u\n", timer4_click, rTCNTO4);
+    //close adc int
+    rINTMSK |= BIT_ADC;
     while(n--)
     {
         s10mss = timer4_click;
@@ -584,7 +606,13 @@ void Test_Adc(void)
         }
 #endif
     }
-    lprintf("end tc %u rADCDLY %x\n", timer4_click, rADCDLY);
+    //enable adc int
+    rSUBSRCPND = BIT_SUB_TC;
+    rSUBSRCPND = BIT_SUB_ADC;
+    rINTMSK &= ~BIT_ADC;
+
+    lprintf("rADCDLY %x\n", rADCDLY);
+    lprintf("end tc %u %u\n", timer4_click, rTCNTO4);
     lprintf("sss tcrcnt04 %u -- %u\n", s10mss, scts);
     lprintf("eee tcrcnt04 %u -- %u\n", s10mse, scte);
     n = TOTAL_DATA_NUMBER;
@@ -603,24 +631,6 @@ void Test_Adc(void)
 /****
  * touch screen test
  * */
-// ADC
-#define rADCCON    (*(volatile unsigned *)0x58000000) //ADC control
-#define rADCTSC    (*(volatile unsigned *)0x58000004) //ADC touch screen control
-#define rADCDLY    (*(volatile unsigned *)0x58000008) //ADC start or Interval Delay
-#define rADCDAT0   (*(volatile unsigned *)0x5800000c) //ADC conversion data 0
-#define rADCDAT1   (*(volatile unsigned *)0x58000010) //ADC conversion data 1                   
-// INTERRUPT
-#define rSRCPND     (*(volatile unsigned *)0x4a000000) //Interrupt request status
-#define rINTMOD     (*(volatile unsigned *)0x4a000004) //Interrupt mode control
-#define rINTMSK     (*(volatile unsigned *)0x4a000008) //Interrupt mask control
-#define rPRIORITY   (*(volatile unsigned *)0x4a00000a) //IRQ priority control
-#define rINTPND     (*(volatile unsigned *)0x4a000010) //Interrupt request status
-#define rINTOFFSET  (*(volatile unsigned *)0x4a000014) //Interruot request source offset
-#define rSUBSRCPND  (*(volatile unsigned *)0x4a000018) //Sub source pending
-#define rINTSUBMSK  (*(volatile unsigned *)0x4a00001c) //Interrupt sub mask
-
-#define BIT_ADC        (0x1<<31)
-#define BIT_SUB_TC     (0x1<<9)
 
 #define LESS 0x54
 #define MAX 0x3AA
