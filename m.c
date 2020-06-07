@@ -27,6 +27,8 @@ void enable_arm_interrupt();
 volatile int x_ts_adc_data, y_ts_adc_data, touch_up = 0;
 volatile int normal_adc_data;
 interrupt_func isr_list[INTNUM_S3C2440] = {0};
+int total_adc_time_index;
+int total_adc_time_list[]={1,5,10,20,50,100};
 
 // ADC
 #define rADCCON    (*(volatile unsigned *)0x58000000) //ADC control
@@ -583,6 +585,7 @@ void Test_Adc(void)
     uint track1_color = 0xf0ff;
     uint n = TOTAL_DATA_NUMBER;
     uint adc_get_time;
+    uint delay_us;
 
     regbak1 = rADCCON;
     regbak2 = rADCTSC;
@@ -605,18 +608,23 @@ void Test_Adc(void)
     //a1 = (rADCDAT0&0x3ff);
     rADCCON|=0x1;
     lprintf("start tc %u %u\n", timer4_click, rTCNTO4);
+    lprintf("total_adc_time_index %u %u\n", total_adc_time_index, total_adc_time_list[total_adc_time_index]);
+    delay_us = total_adc_time_list[total_adc_time_index] * 1000 / TOTAL_DATA_NUMBER;
+    lprintf("delay_us %u\n", delay_us);
     compute_time_start();
-#if 1
-    mass_adc_get(adc_data1, n);
-#else
-    while(n--)
-    {
-        rADCCON|=0x1;
-        while(!(rADCCON & 0x8000));
-        adc_data1[tct++] = rADCDAT0;
-        //Uart_Printf("AIN0: %X,   AIN1: %X\n", a0 ,a1);
+    if(total_adc_time_list[total_adc_time_index] == 1){
+        mass_adc_get(adc_data1, n);
     }
-#endif
+    else{
+        while(n--)
+        {
+            while(!(rADCCON & 0x8000));
+            adc_data1[tct++] = rADCDAT0;
+            //Uart_Printf("AIN0: %X,   AIN1: %X\n", a0 ,a1);
+            udelay(delay_us);
+            rADCCON|=0x1;
+        }
+    }
     adc_get_time = compute_time_end_us();
     lprintf("end tc %u %u\n", timer4_click, rTCNTO4);
     //enable adc int
@@ -739,6 +747,7 @@ void AdcTS_init()
 {
     rADCCON=(1<<14)+(ADCPRS<<6);
     rADCTSC=0xd3;//wait pen down
+    total_adc_time_index = 0;
 }
 
 void Test_AdcTs(void)
@@ -1786,11 +1795,31 @@ typedef struct button {
     const char* text;
 } button_t;
 
+void adc_less_delay()
+{
+    CDB;
+    if(total_adc_time_index>0){
+        CDB;
+        total_adc_time_index--;
+    }
+    lprintf("total_adc_time_index %u %u\n", total_adc_time_index, total_adc_time_list[total_adc_time_index]);
+}
+
+void adc_more_delay()
+{
+    CDB;
+    if(total_adc_time_index<sizeof(total_adc_time_list)/sizeof(int)){
+        CDB;
+        total_adc_time_index++;
+    }
+    lprintf("total_adc_time_index %u %u\n", total_adc_time_index, total_adc_time_list[total_adc_time_index]);
+}
+
 button_t adc_ctr_button[]={
     {5,235,75, 210, Test_Adc, 1, "Trigger"},
-    {85,235,155, 210, NULL, 1, "Faster"},
-    {165,235,235, 210, NULL, 1, "Slower"},
-    {245,235,315, 210, raw_reboot, 1, "Reboot"},
+    {85,235,155, 210, adc_less_delay, 0, "Faster"},
+    {165,235,235, 210, adc_more_delay, 0, "Slower"},
+    {245,235,315, 210, raw_reboot, 0, "Reboot"},
     {-1,-1,-1, -1,NULL, 0, NULL},
 };
 typedef struct ui_info{
@@ -1824,6 +1853,7 @@ void adc_ui_init()
         draw_line(80*i, 0, 80*i, 240, front_color);
     }
 #endif
+    //total_adc_time_index = 0;
 }
 
 #define MIN(x,y) (x<y?x:y)
