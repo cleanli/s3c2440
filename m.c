@@ -533,6 +533,34 @@ int ReadAdc(int ch)
     return (rADCDAT0&0x3ff);
 }
 
+uint timer_start_timer4;
+uint timer_start_timer4buf;
+void compute_time_start()
+{
+    timer_start_timer4 = timer4_click;
+    timer_start_timer4buf  = rTCNTO4;
+}
+
+uint compute_time_end_us()
+{
+    uint ret, tmp, tmp1;
+    tmp = rTCNTO4;
+    tmp1 = timer4_click;
+    //lprintf("%u %u %u %u\n", timer_start_timer4,timer_start_timer4buf,tmp,tmp1);
+    if(tmp < timer_start_timer4buf){
+        ret = timer_start_timer4buf - tmp;
+    }
+    else{
+        ret = 0x3dcc + timer_start_timer4buf - tmp;
+        tmp1--;
+    }
+    ret = ret * 10000 / 0x3dcc;
+    tmp = tmp1 - timer_start_timer4;
+    tmp *= 100000;
+    ret += tmp;
+    return ret;
+}
+
 //#define WAVE_DISP_VERTICAL
 #define ADC_DATA_PROCESS(data) (((data)&0x3ff)>>2)
 #ifdef WAVE_DISP_VERTICAL
@@ -553,7 +581,7 @@ void Test_Adc(void)
     uint track0_color = 0x0fff;
     uint track1_color = 0xf0ff;
     uint n = TOTAL_DATA_NUMBER;
-    uint s10mss, s10mse, scts, scte;
+    uint adc_get_time;
 
     regbak1 = rADCCON;
     regbak2 = rADCTSC;
@@ -561,9 +589,9 @@ void Test_Adc(void)
 
     memset(adc_data1, 0, TOTAL_DATA_NUMBER*4);
     rADCDLY = 2;
+    lprintf("adc_data0 %x\n", adc_data0);
+    lprintf("adc_data1 %x\n", adc_data1);
     Uart_Printf("PCLK %u FCLK %u.\n", get_PCLK(), get_FCLK());
-    Uart_Printf("The ADC_IN are adjusted to the following values.\n");        
-    Uart_Printf("Push any key to exit!\n");    
     Uart_Printf("ADC conv. freq.=%u(Hz)\n",(int)(get_PCLK()/(ADCPRS+1.)));
     
 	Lcd_ClearScr(back_color);	//fill all screen with some color
@@ -586,37 +614,34 @@ void Test_Adc(void)
     //rADCCON=(1<<14)+(ADCPRS<<6)+(1<<3)+(1<<1);
     rADCCON=(1<<14)+(ADCPRS<<6)+(1<<3);
     rADCTSC = rADCTSC & 0xfb;
-    lprintf("start tc %u %u\n", timer4_click, rTCNTO4);
     //close adc int
     rINTMSK |= BIT_ADC;
     //read
     //a1 = (rADCDAT0&0x3ff);
-    lprintf("adc_data1 %x\n", adc_data1);
     rADCCON|=0x1;
+    lprintf("start tc %u %u\n", timer4_click, rTCNTO4);
+    compute_time_start();
 #if 1
     mass_adc_get(adc_data1, n);
 #else
     while(n--)
     {
-        //s10mss = timer4_click;
-        //scts = rTCNTO4;
         rADCCON|=0x1;
         while(!(rADCCON & 0x8000));
-        //s10mse = timer4_click;
-        //scte = rTCNTO4;
         adc_data1[tct++] = rADCDAT0;
         //Uart_Printf("AIN0: %X,   AIN1: %X\n", a0 ,a1);
     }
 #endif
+    adc_get_time = compute_time_end_us();
+    lprintf("end tc %u %u\n", timer4_click, rTCNTO4);
     //enable adc int
     rSUBSRCPND = BIT_SUB_TC;
     rSUBSRCPND = BIT_SUB_ADC;
     rINTMSK &= ~BIT_ADC;
 
     lprintf("rADCDLY %x\n", rADCDLY);
-    lprintf("end tc %u %u\n", timer4_click, rTCNTO4);
-    lprintf("sss tcrcnt04 %u -- %u\n", s10mss, scts);
-    lprintf("eee tcrcnt04 %u -- %u\n", s10mse, scte);
+    lprintf("time %u us\n", adc_get_time);
+    lcd_printf(270,5,"%uus", adc_get_time);
     n = TOTAL_DATA_NUMBER;
     while(n--){
         if(n > 1){
