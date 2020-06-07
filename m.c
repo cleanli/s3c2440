@@ -1779,11 +1779,12 @@ typedef struct button {
     int y2;
     p_func click_func;
     int need_re_init_ui;
+    const char* text;
 } button_t;
 
 button_t adc_ctr_button[]={
-    {5,235,75, 200, Test_Adc, 1},
-    {-1,-1,-1, -1,NULL, 0},
+    {5,235,75, 200, Test_Adc, 1, "Trigger"},
+    {-1,-1,-1, -1,NULL, 0, NULL},
 };
 typedef struct ui_info{
     p_func init;
@@ -1818,6 +1819,7 @@ void adc_ui_init()
 #endif
 }
 
+#define MIN(x,y) (x<y?x:y)
 ui_t*current_ui;
 void ui_init()
 {
@@ -1827,6 +1829,11 @@ void ui_init()
     //lprintf("but x1 %x\n", p_bt->x1);
     while(p_bt->x1 >=0){
         draw_sq(p_bt->x1, p_bt->y1, p_bt->x2, p_bt->y2, 0xffff);
+        if(p_bt->text){
+            int lx = MIN(p_bt->x1, p_bt->x2);
+            int ly = MIN(p_bt->y1, p_bt->y2);
+            lcd_printf(lx+5,ly+5,p_bt->text);
+        }
         p_bt++;
     }
 }
@@ -1847,7 +1854,10 @@ void ui_running()
         while(p_bt->x1 >=0){
             if(IN_RANGE(x, p_bt->x1, p_bt->x2) &&
                     IN_RANGE(y, p_bt->y1, p_bt->y2)){
+                draw_sq(p_bt->x1, p_bt->y1, p_bt->x2, p_bt->y2, 0x0f0f);
                 lprintf("in button\n");
+                udelay(100*1000);
+                draw_sq(p_bt->x1, p_bt->y1, p_bt->x2, p_bt->y2, 0xffff);
                 if(p_bt->need_re_init_ui){
                     ui_init();
                 }
