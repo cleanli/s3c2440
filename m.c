@@ -1778,11 +1778,12 @@ typedef struct button {
     int x2;
     int y2;
     p_func click_func;
+    int need_re_init_ui;
 } button_t;
 
 button_t adc_ctr_button[]={
-    {5,235,75, 200,NULL},
-    {-1,-1,-1, -1,NULL},
+    {5,235,75, 200, Test_Adc, 1},
+    {-1,-1,-1, -1,NULL, 0},
 };
 typedef struct ui_info{
     p_func init;
@@ -1830,8 +1831,34 @@ void ui_init()
     }
 }
 
+#define IN_RANGE(x, x1, x2) (((x1<x2)&&(x1<x)&&(x<x2)) ||\
+    ((x2<x1)&&(x2<x)&&(x<x1)))
+
 void ui_running()
 {
+    uint x, y;
+    button_t* p_bt = current_ui->button_info;
+    if(screen_touched()){
+        x = transfer_to_xy_ord(x_ts_adc_data, 320);
+        y = transfer_to_xy_ord(y_ts_adc_data, 240);
+        y = 240 - y;
+        lprintf("x %u y %u\n", x,y);
+        lprintf("%u %u %u %u\n", p_bt->x1, p_bt->y1, p_bt->x2, p_bt->y2);
+        while(p_bt->x1 >=0){
+            if(IN_RANGE(x, p_bt->x1, p_bt->x2) &&
+                    IN_RANGE(y, p_bt->y1, p_bt->y2)){
+                lprintf("in button\n");
+                if(p_bt->need_re_init_ui){
+                    ui_init();
+                }
+                if(p_bt->click_func){
+                    p_bt->click_func();
+                }
+            }
+            p_bt++;
+        }
+        clear_touched();
+    }
 }
 
 void run_touch_screen_app()
@@ -1846,20 +1873,6 @@ void run_touch_screen_app()
     ui_init();
     while(1){
         ui_running();
-        if(screen_touched()){
-            x = transfer_to_xy_ord(x_ts_adc_data, 320);
-            y = transfer_to_xy_ord(y_ts_adc_data, 240);
-            y = 240 - y;
-            lprintf("x %u y %u\n", x,y);
-            if(y > 100){
-                ui_init();
-                Test_Adc();
-            }
-            else if(y > 0){
-                return;
-            }
-            clear_touched();
-        }
     }
 }
 
