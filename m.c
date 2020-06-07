@@ -1055,8 +1055,15 @@ error:
 
 }
 
-void go(unsigned char *para)
+void go(unsigned char *p)
 {
+    uint addr, tmp;
+
+    tmp = get_howmany_para(p);
+    if(tmp == 1){
+        p = str_to_hex(p, &addr);
+        mrw_addr = (uint32_t *) addr;
+    }
 	lprint("This will go at the addr you just used with the 'r' cmd. Any problem please check!\r\n");
 	(*((void (*)())mrw_addr))();
 }
