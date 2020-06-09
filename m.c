@@ -7,10 +7,12 @@
 #include "common.h"
 #include "cs8900.h"
 #include "s3c2410.h"
+#include "rtc.h"
 
 #define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
 #define INTNUM_S3C2440 32
 //#define WAVE_DISP_VERTICAL
+int rtc_get(struct rtc_time *tmp);
 void adc_ui_init();
 void mass_adc_get(uint*, uint);
 void clear_touched();
@@ -1693,9 +1695,19 @@ start_get_cmd:
 
 void run_clean_os()
 {
+    struct rtc_time rtct;
+    struct rtc_time* tmp = &rtct;
 	lprintf("\r\n\r\nHello, this is clean_boot v%s%s build on %s %s.\r\n", CLEAN_OS_VERSION,
             GIT_SHA1, __DATE__,__TIME__);
     lcd_printf(10,10,"Hello,CleanOS v%s%s", CLEAN_OS_VERSION,GIT_SHA1);
+    rtc_get(tmp);
+	lprintf("Get DATE: %u-%u-%u (wday=%u)  TIME: %u:%u:%u\n",
+	       tmp->tm_year, tmp->tm_mon, tmp->tm_mday, tmp->tm_wday,
+	       tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
+	lcd_printf(10,30,"Get DATE: %u-%u-%u (wday=%u)",
+	       tmp->tm_year, tmp->tm_mon, tmp->tm_mday, tmp->tm_wday);
+	lcd_printf(10,50,"TIME: %u:%u:%u",
+	       tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
 	memset(cmd_buf, 0, COM_MAX_LEN);
 	cmd_buf_p = 0;
     exit_os = 0;
