@@ -1748,8 +1748,15 @@ int screen_touched()
 
 int enter_confirm()
 {
+    struct rtc_time rtct;
+    struct rtc_time* tmp = &rtct;
     int ct = 5;
     int ct1 = 0;
+    rtc_get(tmp);
+	lcd_printf(10,30,"Get DATE: %u-%u-%u (wday=%u)",
+	       tmp->tm_year, tmp->tm_mon, tmp->tm_mday, tmp->tm_wday);
+	lcd_printf(10,50,"TIME: %u:%u:%u",
+	       tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
     lprint("Any key or touch screen in 5 seconds will go CleanOS, or quit...\r\n");
     clear_touched();
     while(ct){
@@ -1764,7 +1771,7 @@ int enter_confirm()
         udelay(100*1000);
         if(ct1++ > 10){
             ct1 = 0;
-            lcd_printf(10,10,"Count down %u", ct);
+            lcd_printf(10,70,"Count down %u", ct);
             lprint("Count down %u\r\n", ct--);
         }
     }
