@@ -16,6 +16,15 @@ typedef uint8_t u8;
 typedef uint8_t uchar;
 typedef void (*interrupt_func)(void);
 typedef void (*p_func)(void);
+typedef void (*func_p)(void*);
+
+struct delay_work_info {
+    func_p function;
+    uint ct_10ms;
+    void * para;
+    int repeat;
+    uint delay_time_10ms;
+};
 
 typedef struct bd_info {
     int			bi_baudrate;	/* serial console baudrate */

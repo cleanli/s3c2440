@@ -12,6 +12,8 @@
 #define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
 #define INTNUM_S3C2440 32
 //#define WAVE_DISP_VERTICAL
+int set_delayed_work(uint tct_10ms, func_p f, void*pa, int repeat);
+void cancel_delayed_work(int index);
 int rtc_get(struct rtc_time *tmp);
 void adc_ui_init();
 void mass_adc_get(uint*, uint);
@@ -32,6 +34,19 @@ interrupt_func isr_list[INTNUM_S3C2440] = {0};
 int total_adc_time_index;
 int total_adc_time_list[]={1,2,5,10,20,50,100,200,500,1000};
 int debug[16];
+struct delay_work_info delayed_works[]={
+    {
+        NULL,
+        0,
+        NULL,
+        0,
+        0
+    },
+};
+#define NUMBER_OF_DELAYED_WORKS \
+    (sizeof(delayed_works)/sizeof(struct delay_work_info))
+int autotrigger;
+int autotriggertime;
 
 // ADC
 #define rADCCON    (*(volatile unsigned *)0x58000000) //ADC control
@@ -778,6 +793,8 @@ void AdcTS_init()
     rADCCON=(1<<14)+(ADCPRS<<6);
     rADCTSC=0xd3;//wait pen down
     total_adc_time_index = 0;
+    autotrigger = -1;
+    cancel_delayed_work(0);
 }
 
 void Test_AdcTs(void)
@@ -1840,6 +1857,27 @@ typedef struct button {
     const char* text;
 } button_t;
 
+void trigger_adc(void*p)
+{
+    Test_Adc();
+}
+
+void trigger_config()
+{
+    if(autotrigger == -1){
+        //autotrigger = set_delayed_work(500, trigger_adc, NULL, 1);
+        autotrigger = 1;
+        lprintf("autotrigger %u\n", autotrigger);
+        lcd_printf(10,30,"AutoTriOn ", total_adc_time_list[total_adc_time_index]);
+        autotriggertime = 500 + timer4_click;
+    }
+    else{
+        cancel_delayed_work(autotrigger);
+        autotrigger = -1;
+        lcd_printf(10,30,"AutoTriOff", total_adc_time_list[total_adc_time_index]);
+    }
+}
+
 void adc_less_delay()
 {
     if(total_adc_time_index>0){
@@ -1859,10 +1897,11 @@ void adc_more_delay()
 }
 
 button_t adc_ctr_button[]={
-    {5,235,75, 210, Test_Adc, 1, "Trigger"},
-    {85,235,155, 210, adc_less_delay, 0, "Faster"},
-    {165,235,235, 210, adc_more_delay, 0, "Slower"},
-    {245,235,315, 210, raw_reboot, 0, "Reboot"},
+    {5,235,75, 215, Test_Adc, 1, "Trigger"},
+    {5,210,75, 190, trigger_config, 0, "TriAuto"},
+    {85,235,155, 215, adc_less_delay, 0, "Faster"},
+    {165,235,235, 215, adc_more_delay, 0, "Slower"},
+    {245,235,315, 215, raw_reboot, 0, "Reboot"},
     {-1,-1,-1, -1,NULL, 0, NULL},
 };
 typedef struct ui_info{
@@ -1951,6 +1990,54 @@ void ui_running()
     }
 }
 
+void cancel_delayed_work(int index)
+{
+    CDB;
+    delayed_works[index].function == 3;
+    lprintf("%x\n", delayed_works[index].function);
+}
+
+int set_delayed_work(uint tct_10ms, func_p f, void*pa, int repeat)
+{
+    CDB;
+    for(int i = 0; i<NUMBER_OF_DELAYED_WORKS; i++){
+    CDB;
+    lprintf("i %u, %x\n", i, delayed_works[i].function);
+        if(delayed_works[i].function == NULL){
+            CDB;
+            delayed_works[i].function = f;
+            delayed_works[i].ct_10ms = tct_10ms + timer4_click;
+            delayed_works[i].delay_time_10ms = tct_10ms;
+            delayed_works[i].para = pa;
+            delayed_works[i].repeat = repeat;
+            return i;
+        }
+    }
+    return -1;
+}
+
+void task_misc()
+{
+    /*
+    if(!stop_feed_wtd){
+        feed_watch_dog();
+    }
+    */
+    for(int i = 0; i<NUMBER_OF_DELAYED_WORKS; i++){
+        if(delayed_works[i].function != NULL){
+            if(delayed_works[i].ct_10ms > 0 && delayed_works[i].ct_10ms < timer4_click){
+                delayed_works[i].function(delayed_works[i].para);
+                if(delayed_works[i].repeat == 0){
+                    delayed_works[i].function = NULL;
+                }
+                else{
+                    delayed_works[i].ct_10ms = timer4_click + delayed_works[i].delay_time_10ms;
+                }
+            }
+        }
+    }
+}
+
 void run_touch_screen_app()
 {
     int x, y, lastx = -1, lasty;
@@ -1963,6 +2050,13 @@ void run_touch_screen_app()
     ui_init();
     while(1){
         ui_running();
+        if(autotrigger != -1){
+            if(timer4_click > autotriggertime){
+                ui_init();
+                Test_Adc();
+                autotriggertime = timer4_click + 500;
+            }
+        }
     }
 }
 
