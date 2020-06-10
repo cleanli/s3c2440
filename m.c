@@ -30,7 +30,7 @@ volatile int x_ts_adc_data, y_ts_adc_data, touch_up = 0;
 volatile int normal_adc_data;
 interrupt_func isr_list[INTNUM_S3C2440] = {0};
 int total_adc_time_index;
-int total_adc_time_list[]={1,2,5,10,20,50,100};
+int total_adc_time_list[]={1,2,5,10,20,50,100,200,500,1000};
 int debug[16];
 
 // ADC
@@ -1845,6 +1845,7 @@ void adc_less_delay()
     if(total_adc_time_index>0){
         total_adc_time_index--;
     }
+    lcd_printf(10,10,"Set:%ums    ", total_adc_time_list[total_adc_time_index]);
     lprintf("total_adc_time_index %u %u\n", total_adc_time_index, total_adc_time_list[total_adc_time_index]);
 }
 
@@ -1853,6 +1854,7 @@ void adc_more_delay()
     if(total_adc_time_index<(sizeof(total_adc_time_list)/sizeof(int)-1)){
         total_adc_time_index++;
     }
+    lcd_printf(10,10,"Set:%ums    ", total_adc_time_list[total_adc_time_index]);
     lprintf("total_adc_time_index %u %u\n", total_adc_time_index, total_adc_time_list[total_adc_time_index]);
 }
 
