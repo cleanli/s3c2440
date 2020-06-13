@@ -1914,34 +1914,42 @@ void adc_more_delay()
 button_t adc_ctr_button[]={
     {5,235,75, 215, Test_Adc, -1, 1, "Trigger"},
     {5,210,75, 190, trigger_config, -1, 0, "TriAuto"},
-    {85,210,155, 190, exit_ui, -1, 0, "Exit"},
+    {85,210,155, 190, NULL, 0, 0, "Return"},
     {85,235,155, 215, adc_less_delay, -1, 0, "Faster"},
     {165,235,235, 215, adc_more_delay, -1, 0, "Slower"},
     {-1,-1,-1, -1,NULL, -1, 0, NULL},
 };
 typedef struct ui_info{
     p_func init;
+    p_func uninit;
     button_t* button_info;
     int ui_index;
 } ui_t;
 
 button_t main_menu_button[]={
-    {130,110,200, 135, NULL, -1, UI_ADC, "ADC"},
+    {130,110,200, 135, NULL, UI_ADC, 0, "ADC"},
     {130,150,200, 175, raw_reboot, -1, 0, "Reboot"},
+    {130,210,200, 190, exit_ui, -1, 0, "Exit"},
     {-1,-1,-1, -1,NULL, -1, 0, NULL},
 };
 
-ui_t main_menu_ui={
-    NULL,
-    main_menu_button,
-    UI_MAIN_MENU,
-};
 
-ui_t adc_ui={
-    adc_ui_init,
-    adc_ctr_button,
-    UI_ADC,
+ui_t ui_list[]={
+    {
+        NULL,
+        NULL,
+        main_menu_button,
+        UI_MAIN_MENU,
+    },
+
+    {
+        adc_ui_init,
+        NULL,
+        adc_ctr_button,
+        UI_ADC,
+    },
 };
+#define UI_LIST_SIZE (sizeof(ui_list)/sizeof(ui_t))
 
 void adc_ui_init()
 {
@@ -2000,6 +2008,27 @@ void ui_init()
 
 #define IN_RANGE(x, x1, x2) (((x1<x2)&&(x1<x)&&(x<x2)) ||\
     ((x2<x1)&&(x2<x)&&(x<x1)))
+void ui_uninit()
+{
+    if(current_ui->uninit){
+        current_ui->uninit();
+    }
+}
+
+void ui_transfer(int ui_id)
+{
+    lprintf("ui tranfer to %u\n", ui_id);
+    for(int i = 0;i<UI_LIST_SIZE;i++)
+    {
+        if(ui_list[i].ui_index == ui_id){
+            ui_uninit();
+            current_ui = & ui_list[i];
+            ui_init();
+            return;
+        }
+    }
+
+}
 
 void ui_running()
 {
@@ -2023,6 +2052,10 @@ void ui_running()
                 }
                 if(p_bt->click_func){
                     p_bt->click_func();
+                }
+                lprintf("%x\n", p_bt->ui_goto);
+                if(p_bt->ui_goto != -1){
+                    ui_transfer(p_bt->ui_goto);
                 }
             }
             p_bt++;
@@ -2081,7 +2114,7 @@ void run_touch_screen_app()
     clear_touched();
 	Uart_Printf("\nStylus Down, please...... \n");
     lcd_printf(10,10,"Please touch screen again!");
-    current_ui = & main_menu_ui;
+    current_ui = & ui_list[0];
     ui_init();
     while(1){
         ui_running();
