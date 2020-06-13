@@ -9,6 +9,12 @@
 #include "s3c2410.h"
 #include "rtc.h"
 
+enum UI_NAME_INDEX {
+    UI_MAIN_MENU,
+    UI_ADC,
+    UI_MAX
+};
+
 #define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
 #define INTNUM_S3C2440 32
 //#define WAVE_DISP_VERTICAL
@@ -1854,6 +1860,7 @@ typedef struct button {
     int x2;
     int y2;
     p_func click_func;
+    int ui_goto;
     int need_re_init_ui;
     const char* text;
 } button_t;
@@ -1905,22 +1912,35 @@ void adc_more_delay()
 }
 
 button_t adc_ctr_button[]={
-    {5,235,75, 215, Test_Adc, 1, "Trigger"},
-    {5,210,75, 190, trigger_config, 0, "TriAuto"},
-    {85,210,155, 190, exit_ui, 0, "Exit"},
-    {85,235,155, 215, adc_less_delay, 0, "Faster"},
-    {165,235,235, 215, adc_more_delay, 0, "Slower"},
-    {245,235,315, 215, raw_reboot, 0, "Reboot"},
-    {-1,-1,-1, -1,NULL, 0, NULL},
+    {5,235,75, 215, Test_Adc, -1, 1, "Trigger"},
+    {5,210,75, 190, trigger_config, -1, 0, "TriAuto"},
+    {85,210,155, 190, exit_ui, -1, 0, "Exit"},
+    {85,235,155, 215, adc_less_delay, -1, 0, "Faster"},
+    {165,235,235, 215, adc_more_delay, -1, 0, "Slower"},
+    {-1,-1,-1, -1,NULL, -1, 0, NULL},
 };
 typedef struct ui_info{
     p_func init;
     button_t* button_info;
+    int ui_index;
 } ui_t;
+
+button_t main_menu_button[]={
+    {130,110,200, 135, NULL, -1, UI_ADC, "ADC"},
+    {130,150,200, 175, raw_reboot, -1, 0, "Reboot"},
+    {-1,-1,-1, -1,NULL, -1, 0, NULL},
+};
+
+ui_t main_menu_ui={
+    NULL,
+    main_menu_button,
+    UI_MAIN_MENU,
+};
 
 ui_t adc_ui={
     adc_ui_init,
     adc_ctr_button,
+    UI_ADC,
 };
 
 void adc_ui_init()
@@ -1945,6 +1965,13 @@ void adc_ui_init()
     }
 #endif
     //total_adc_time_index = 0;
+    lcd_printf(10,10,"Set:%ums    ", total_adc_time_list[total_adc_time_index]);
+    if(autotrigger == -1){
+        lcd_printf(10,30,"AutoTriOff");
+    }
+    else{
+        lcd_printf(10,30,"AutoTriOn ");
+    }
 }
 
 #define MIN(x,y) (x<y?x:y)
@@ -1953,7 +1980,12 @@ void ui_init()
 {
     //lprintf("curr ui %x\n", current_ui);
     button_t* p_bt = current_ui->button_info;
-    current_ui->init();
+    if(current_ui->init){
+        current_ui->init();
+    }
+    else{
+        Lcd_ClearScr(0);	//fill all screen with some color
+    }
     //lprintf("but x1 %x\n", p_bt->x1);
     while(p_bt->x1 >=0){
         draw_sq(p_bt->x1, p_bt->y1, p_bt->x2, p_bt->y2, 0xffff);
@@ -1963,13 +1995,6 @@ void ui_init()
             lcd_printf(lx+5,ly+5,p_bt->text);
         }
         p_bt++;
-    }
-    lcd_printf(10,10,"Set:%ums    ", total_adc_time_list[total_adc_time_index]);
-    if(autotrigger == -1){
-        lcd_printf(10,30,"AutoTriOff");
-    }
-    else{
-        lcd_printf(10,30,"AutoTriOn ");
     }
 }
 
@@ -2056,7 +2081,7 @@ void run_touch_screen_app()
     clear_touched();
 	Uart_Printf("\nStylus Down, please...... \n");
     lcd_printf(10,10,"Please touch screen again!");
-    current_ui = & adc_ui;
+    current_ui = & main_menu_ui;
     ui_init();
     while(1){
         ui_running();
