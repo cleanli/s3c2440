@@ -12,6 +12,7 @@
 #define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
 #define INTNUM_S3C2440 32
 //#define WAVE_DISP_VERTICAL
+void ui_init();
 int set_delayed_work(uint tct_10ms, func_p f, void*pa, int repeat);
 void cancel_delayed_work(int index);
 int rtc_get(struct rtc_time *tmp);
@@ -1859,23 +1860,30 @@ typedef struct button {
 
 void trigger_adc(void*p)
 {
+    ui_init();
     Test_Adc();
 }
 
 void trigger_config()
 {
     if(autotrigger == -1){
-        //autotrigger = set_delayed_work(500, trigger_adc, NULL, 1);
-        autotrigger = 1;
+        autotrigger = set_delayed_work(500, trigger_adc, NULL, 1);
+        //autotrigger = 1;
         lprintf("autotrigger %u\n", autotrigger);
-        lcd_printf(10,30,"AutoTriOn ", total_adc_time_list[total_adc_time_index]);
+        lcd_printf(10,30,"AutoTriOn ");
         autotriggertime = 500 + timer4_click;
     }
     else{
         cancel_delayed_work(autotrigger);
         autotrigger = -1;
-        lcd_printf(10,30,"AutoTriOff", total_adc_time_list[total_adc_time_index]);
+        lcd_printf(10,30,"AutoTriOff");
     }
+}
+
+int ui_exit;
+void exit_ui()
+{
+    ui_exit = 1;
 }
 
 void adc_less_delay()
@@ -1899,6 +1907,7 @@ void adc_more_delay()
 button_t adc_ctr_button[]={
     {5,235,75, 215, Test_Adc, 1, "Trigger"},
     {5,210,75, 190, trigger_config, 0, "TriAuto"},
+    {85,210,155, 190, exit_ui, 0, "Exit"},
     {85,235,155, 215, adc_less_delay, 0, "Faster"},
     {165,235,235, 215, adc_more_delay, 0, "Slower"},
     {245,235,315, 215, raw_reboot, 0, "Reboot"},
@@ -1955,6 +1964,13 @@ void ui_init()
         }
         p_bt++;
     }
+    lcd_printf(10,10,"Set:%ums    ", total_adc_time_list[total_adc_time_index]);
+    if(autotrigger == -1){
+        lcd_printf(10,30,"AutoTriOff");
+    }
+    else{
+        lcd_printf(10,30,"AutoTriOn ");
+    }
 }
 
 #define IN_RANGE(x, x1, x2) (((x1<x2)&&(x1<x)&&(x<x2)) ||\
@@ -1992,19 +2008,13 @@ void ui_running()
 
 void cancel_delayed_work(int index)
 {
-    CDB;
-    delayed_works[index].function == 3;
-    lprintf("%x\n", delayed_works[index].function);
+    delayed_works[index].function = NULL;
 }
 
 int set_delayed_work(uint tct_10ms, func_p f, void*pa, int repeat)
 {
-    CDB;
     for(int i = 0; i<NUMBER_OF_DELAYED_WORKS; i++){
-    CDB;
-    lprintf("i %u, %x\n", i, delayed_works[i].function);
         if(delayed_works[i].function == NULL){
-            CDB;
             delayed_works[i].function = f;
             delayed_works[i].ct_10ms = tct_10ms + timer4_click;
             delayed_works[i].delay_time_10ms = tct_10ms;
@@ -2050,6 +2060,11 @@ void run_touch_screen_app()
     ui_init();
     while(1){
         ui_running();
+        task_misc();
+        if(ui_exit == 1){
+            break;
+        }
+        /*no used code
         if(autotrigger != -1){
             if(timer4_click > autotriggertime){
                 ui_init();
@@ -2057,6 +2072,7 @@ void run_touch_screen_app()
                 autotriggertime = timer4_click + 500;
             }
         }
+        */
     }
 }
 
