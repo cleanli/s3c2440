@@ -12,6 +12,7 @@
 enum UI_NAME_INDEX {
     UI_MAIN_MENU,
     UI_ADC,
+    UI_CLOCK,
     UI_MAX
 };
 
@@ -1911,6 +1912,11 @@ void adc_more_delay()
     lprintf("total_adc_time_index %u %u\n", total_adc_time_index, total_adc_time_list[total_adc_time_index]);
 }
 
+button_t clock_button[]={
+    {130,210,200,190, NULL, 0, 0, "Return"},
+    {-1,-1,-1, -1,NULL, -1, 0, NULL},
+};
+
 button_t adc_ctr_button[]={
     {5,235,75, 215, Test_Adc, -1, 1, "Trigger"},
     {5,210,75, 190, trigger_config, -1, 0, "TriAuto"},
@@ -1927,6 +1933,7 @@ typedef struct ui_info{
 } ui_t;
 
 button_t main_menu_button[]={
+    {130,70,200, 95, NULL, UI_CLOCK, 0, "CLOCK"},
     {130,110,200, 135, NULL, UI_ADC, 0, "ADC"},
     {130,150,200, 175, raw_reboot, -1, 0, "Reboot"},
     {130,210,200, 190, exit_ui, -1, 0, "Exit"},
@@ -1947,6 +1954,13 @@ ui_t ui_list[]={
         NULL,
         adc_ctr_button,
         UI_ADC,
+    },
+
+    {
+        NULL,
+        NULL,
+        clock_button,
+        UI_CLOCK,
     },
 };
 #define UI_LIST_SIZE (sizeof(ui_list)/sizeof(ui_t))
