@@ -1983,6 +1983,7 @@ button_t adc_ctr_button[]={
 typedef struct ui_info{
     p_func init;
     p_func uninit;
+    p_func doing_ui;
     button_t* button_info;
     int ui_index;
 } ui_t;
@@ -1995,9 +1996,25 @@ button_t main_menu_button[]={
     {-1,-1,-1, -1,NULL, -1, 0, NULL},
 };
 
+void clock_doing_ui()
+{
+    static int last_time4 = 0;
+    if(last_time4 != timer4_click){
+        struct rtc_time rtct;
+        struct rtc_time* tmp = &rtct;
+        rtc_get(tmp);
+        lcd_printf(10,30,"DATE: %u-%u-%u",
+                tmp->tm_year, tmp->tm_mon, tmp->tm_mday);
+        lcd_printf(10,50,"Wday: %u", tmp->tm_wday);
+        lcd_printf(10,70,"TIME: %u:%u:%u",
+                tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
+        last_time4 = timer4_click;
+    }
+}
 
 ui_t ui_list[]={
     {
+        NULL,
         NULL,
         NULL,
         main_menu_button,
@@ -2007,6 +2024,7 @@ ui_t ui_list[]={
     {
         adc_ui_init,
         NULL,
+        NULL,
         adc_ctr_button,
         UI_ADC,
     },
@@ -2014,6 +2032,7 @@ ui_t ui_list[]={
     {
         NULL,
         NULL,
+        clock_doing_ui,
         clock_button,
         UI_CLOCK,
     },
@@ -2130,6 +2149,9 @@ void ui_running()
             p_bt++;
         }
         clear_touched();
+    }
+    if(current_ui->doing_ui){
+        current_ui->doing_ui();
     }
 }
 
