@@ -16,6 +16,28 @@ enum UI_NAME_INDEX {
     UI_MAX
 };
 
+#define rGPBCON    (*(volatile unsigned *)0x56000010) //Port B control
+#define rGPBDAT    (*(volatile unsigned *)0x56000014) //Port B data
+#define rGPBUP     (*(volatile unsigned *)0x56000018) //Pull-up control B
+
+#define rTCFG0  (*(volatile unsigned *)0x51000000) //Timer 0 configuration
+#define rTCFG1  (*(volatile unsigned *)0x51000004) //Timer 1 configuration
+#define rTCON   (*(volatile unsigned *)0x51000008) //Timer control
+#define rTCNTB0 (*(volatile unsigned *)0x5100000c) //Timer count buffer 0
+#define rTCMPB0 (*(volatile unsigned *)0x51000010) //Timer compare buffer 0
+#define rTCNTO0 (*(volatile unsigned *)0x51000014) //Timer count observation 0
+#define rTCNTB1 (*(volatile unsigned *)0x51000018) //Timer count buffer 1
+#define rTCMPB1 (*(volatile unsigned *)0x5100001c) //Timer compare buffer 1
+#define rTCNTO1 (*(volatile unsigned *)0x51000020) //Timer count observation 1
+#define rTCNTB2 (*(volatile unsigned *)0x51000024) //Timer count buffer 2
+#define rTCMPB2 (*(volatile unsigned *)0x51000028) //Timer compare buffer 2
+#define rTCNTO2 (*(volatile unsigned *)0x5100002c) //Timer count observation 2
+#define rTCNTB3 (*(volatile unsigned *)0x51000030) //Timer count buffer 3
+#define rTCMPB3 (*(volatile unsigned *)0x51000034) //Timer compare buffer 3
+#define rTCNTO3 (*(volatile unsigned *)0x51000038) //Timer count observation 3
+#define rTCNTB4 (*(volatile unsigned *)0x5100003c) //Timer count buffer 4
+#define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
+
 #define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
 #define INTNUM_S3C2440 32
 //#define WAVE_DISP_VERTICAL
@@ -227,6 +249,29 @@ void draw_sq(int x1, int y1, int x2, int y2, int color);
 
 uint32_t whichUart;
 uint32_t timer4_click;
+void Buzzer_Freq_Set( U32 freq )
+{
+	rGPBCON &= ~12;			//set GPB1 as tout1, pwm output
+	rGPBCON |= 8;
+
+	rTCFG0 &= ~0xff;
+	rTCFG0 |= 15;			//prescaler = 15+1
+	rTCFG1 &= ~0xf;
+	rTCFG1 |= 2;			//mux = 1/8
+	rTCNTB1 = (get_PCLK()>>7)/freq;
+	rTCMPB1 = rTCNTB1>>1;	// 50%
+	rTCON &= ~0xf10;
+	rTCON |= 0xb00;			//disable deadzone, auto-reload, inv-off, update TCNTB1&TCMPB1, start timer 1
+	rTCON &= ~0x200;			//clear manual update bit
+}
+
+void Buzzer_Stop( void )
+{
+	rGPBCON &= ~12;
+	rGPBCON |= 4;
+	rGPBDAT |= 2;
+}
+
 void s3c2440_serial_send_byte(unsigned char c)
 {
         while(!(rUTRSTAT0 & 0x2));
@@ -1191,6 +1236,15 @@ error:
     lprint("Error para!\r\ncpsrw 32bit data\r\n");
 }
 
+void buzz(unsigned char *p)
+{
+    uint freq;
+    p = str_to_hex(p, &freq);
+    Buzzer_Freq_Set(freq);
+    while(!getkey());
+    Buzzer_Stop();
+}
+
 void test(unsigned char *p)
 {
     uint deb1, deb2,d;
@@ -1595,6 +1649,7 @@ const unsigned char cs8900_mac[]={0x00, 0x43, 0x33, 0x2f, 0xde, 0x22};
 static const struct command cmd_list[]=
 {
     {"adc",adc,"adc test"},
+    {"buzz",buzz,"buzz test"},
     {"cpsr",prt,"display the value in CPSR of cpu"},
     {"cpsrw",wprt,"write the value in CPSR of cpu"},
     {"dtoh",dtoh,"transfer from demical to hex"},
