@@ -456,6 +456,8 @@ static void dm9000_halt(struct eth_device *netdev)
 	DM9000_iow(DM9000_GPR, 0x01);	/* Power-Down PHY */
 	DM9000_iow(DM9000_IMR, 0x80);	/* Disable all interrupt */
 	DM9000_iow(DM9000_RCR, 0x00);	/* Disable RX */
+	lprintf("dm9000 halt.");
+	dm9000_not_ready = 1;
 }
 
 /*
