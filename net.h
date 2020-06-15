@@ -108,6 +108,7 @@ struct eth_device {
 	int (*mcast) (struct eth_device*, u32 ip, u8 set);
 #endif
 	int  (*write_hwaddr) (struct eth_device*);
+    uint (*dev_is_ready) ();
 	struct eth_device *next;
 	void *priv;
 };

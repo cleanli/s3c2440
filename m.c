@@ -8,6 +8,7 @@
 #include "cs8900.h"
 #include "s3c2410.h"
 #include "rtc.h"
+#include "net.h"
 
 enum UI_NAME_INDEX {
     UI_MAIN_MENU,
@@ -41,6 +42,7 @@ enum UI_NAME_INDEX {
 #define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
 #define INTNUM_S3C2440 32
 //#define WAVE_DISP_VERTICAL
+int dm9000_initialize();
 void ui_init();
 int set_delayed_work(uint tct_10ms, func_p f, void*pa, int repeat);
 void cancel_delayed_work(int index);
@@ -1807,6 +1809,7 @@ void some_init()
     whichUart = 0;
     Lcd_Tft_320X240_Init_from_reset();
     interrutp_init();
+    dm9000_initialize();
 }
 
 void clear_touched()
@@ -2232,7 +2235,7 @@ int main(void)
     timer_init();
     AdcTS_init();
     random_init();
-    cs8900_init(cs8900_mac);
+    //cs8900_init(cs8900_mac);
     some_init();
 #if 0
     int a = 10;

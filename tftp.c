@@ -13,6 +13,7 @@ code const char tftp_req[]=
 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,  0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 };
 #define MAX_PACKAGE 1518
+static struct eth_device* local_eth = NULL;
 static struct tftp_status
 {
 	uint filesize;
@@ -38,6 +39,13 @@ static struct ip_udp_tftp* riutp;
 static uint send_len;
 static unsigned short ipid = 1;
 static void tftp_run();
+
+void eth_register(struct eth_device*dev)
+{
+    if(dev){
+        local_eth = dev;
+    }
+}
 
 unsigned short for_check(unsigned char *crcdata,uint len)
 {

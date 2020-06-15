@@ -68,6 +68,8 @@ TODO: external MII is not functional, only internal at the moment.
 
 /* #define CONFIG_DM9000_DEBUG */
 
+//void eth_register(struct eth_device*dev);
+static uint dm9000_not_ready = 1;
 ulong get_timer(ulong base);
 #ifdef CONFIG_DM9000_DEBUG
 #define DM9000_DBG(fmt,args...) lprintf(fmt, ##args)
@@ -290,8 +292,10 @@ static int dm9000_init(struct eth_device *dev, bd_t *bd)
 	/* RESET device */
 	dm9000_reset();
 
-	if (dm9000_probe() < 0)
+	if (dm9000_probe() < 0){
+        lprintf("error, dm9000 not in use!\r\n");
 		return -1;
+    }
 
 	/* Auto-detect 8/16/32 bit mode, ISR Bit 6+7 indicate bus width */
 	io_mode = DM9000_ior(DM9000_ISR) >> 6;
@@ -392,6 +396,8 @@ static int dm9000_init(struct eth_device *dev, bd_t *bd)
 	}
 	lprintf("mode\n");
 #endif
+	lprintf("dm9000 is ready.");
+	dm9000_not_ready = 0;
 	return 0;
 }
 
@@ -613,21 +619,27 @@ phy_write(int reg, u16 value)
 	DM9000_DBG("phy_write(reg:0x%x, value:0x%x)\n", reg, value);
 }
 
-int dm9000_initialize(bd_t *bis)
+uint dm9000_is_ready()
+{
+	return !dm9000_not_ready;
+}
+
+int dm9000_initialize()
 {
 	struct eth_device *dev = &(dm9000_info.netdev);
 
 	/* Load MAC address from EEPROM */
 	dm9000_get_enetaddr(dev);
 
-	dm9000_init(dev, bis);
+	dm9000_init(dev, NULL);
 	dev->init = dm9000_init;
 	dev->halt = dm9000_halt;
 	dev->send = dm9000_send;
 	dev->recv = dm9000_rx;
+    dev->dev_is_ready = dm9000_is_ready;
 	strcpy(dev->name, "dm9000");
 
-	//eth_register(dev);
+	eth_register(dev);
 
 	return 0;
 }
