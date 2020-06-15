@@ -2,6 +2,7 @@
 #include "type.h"
 #include "tcp.h"
 #include "debug.h"
+#include "net.h"
 #include <string.h>
 
 #define code
@@ -29,7 +30,6 @@ static struct tftp_status
 static unsigned char rsp_arp_buf[60];
 static unsigned char s_buf[MAX_PACKAGE];
 static unsigned char r_buf[MAX_PACKAGE];
-extern const unsigned char * cs8900_mac[];
 static unsigned char server_mac[6];
 extern uint server_ip;
 extern uint local_ip;
@@ -40,7 +40,7 @@ static uint send_len;
 static unsigned short ipid = 1;
 static void tftp_run();
 
-void eth_register(struct eth_device*dev)
+int eth_register(struct eth_device*dev)
 {
     if(dev){
         local_eth = dev;
@@ -121,7 +121,7 @@ static void setup_arp_req(unsigned char * buf)
 	memset(buf, 0, 60);
 	/*set 802.3 header*/
 	memset(tmp_ep->dest_mac, 0xff, 6);
-	memcpy(tmp_ep->src_mac, cs8900_mac, 6);
+	memcpy(tmp_ep->src_mac, local_eth->enetaddr, 6);
 	tmp_ep->protocol = 0x0608;
 	/*setup arp package*/
 	arp_p_p->hardware = 0x100;
@@ -129,7 +129,7 @@ static void setup_arp_req(unsigned char * buf)
     	arp_p_p->hardware_addr_len = 6;
     	arp_p_p->protocol_addr_len = 4;
     	arp_p_p->operation = 0x100;
-	memcpy(arp_p_p->sender_mac, cs8900_mac, 6);
+	memcpy(arp_p_p->sender_mac, local_eth->enetaddr, 6);
 	memset(arp_p_p->target_mac, 0x0, 6);
     	memcpy(arp_p_p->sender_ip, &local_ip, 4);
     	memcpy(arp_p_p->target_ip, &server_ip, 4);
@@ -152,7 +152,7 @@ uint recv_p()
 	struct arp_p *arp_p_p = (struct arp_p *)rep->datas, *rsp_arp = (struct arp_p *)tmp_ep->datas;
 	uint len;
 
-	len = cs8900_recv((unsigned short*)r_buf);
+	len = local_eth->recv(local_eth, (unsigned short*)r_buf);
 	if(!len)
 		return 0;
 	if(rep->protocol == 0x0608 && arp_p_p->operation == 0x0100){
@@ -163,7 +163,7 @@ uint recv_p()
     			rsp_arp->operation = 0x200;
 			memcpy(rsp_arp->target_mac, arp_p_p->sender_mac, 6);
     			memcpy(rsp_arp->target_ip, arp_p_p->sender_ip, 4);
-			if(cs8900_send((unsigned short*)rsp_arp_buf, 60) != 60){
+			if(local_eth->send(local_eth, (unsigned short*)rsp_arp_buf, 60) != 60){
 				lprintf("answer asp failed!\r\n");
             }
 			else{
@@ -181,7 +181,7 @@ uint get_response(uint (*anlz)(), uint try)
 	uint len, wait;
 	
 send:
-        len = cs8900_send((unsigned short*)s_buf, send_len);
+        len = local_eth->send(local_eth, (unsigned short*)s_buf, send_len);
         if(len != send_len){
                 lprintf("send packages error\r\n");
                 return 0;
@@ -219,7 +219,7 @@ void setup_tftp_package()
 	memcpy(s_buf, tftp_req, 64);
 	/*set 802.3 header*/
 	memcpy(sep->dest_mac, server_mac, 6);
-	memcpy(sep->src_mac, cs8900_mac, 6);
+	memcpy(sep->src_mac, local_eth->enetaddr, 6);
 
     	memcpy(siutp->ip_header.sender_ip, &local_ip, 4);
     	memcpy(siutp->ip_header.target_ip, &server_ip, 4);
@@ -273,7 +273,7 @@ void setup_tftp_package()
 		t_s.filesize -= data_len;
 		/*set 802.3 header*/
 		memcpy(sep->dest_mac, server_mac, 6);
-		memcpy(sep->src_mac, cs8900_mac, 6);
+		memcpy(sep->src_mac, local_eth->enetaddr, 6);
 
 		siutp->udp_header.src_port = change_end(t_s.port);
 		/*setup ip header*/
@@ -322,7 +322,7 @@ uint anlz_tftp()
 		t_s.membase += 512;
 		if(data_len != 512){
 			t_s.running = 0;
-        		cs8900_send((unsigned short*)s_buf, send_len);
+        		local_eth->send(local_eth, (unsigned short*)s_buf, send_len);
 			lprintf("\r\nfile size:0x%x(%d)\r\n", t_s.filesize = (t_s.block_n-1)*512 + data_len, t_s.filesize);
 		}
 		t_s.block_n++;
@@ -359,11 +359,11 @@ static void tftp_run()
 	t_s.server_port = 69;
 	t_s.port = 0;
 	t_s.running = 0;
-	if(!cs8900_is_ready()){
+	if(!local_eth->dev_is_ready()){
 		lprintf("cs8900 not ready!\r\n");
 		return;
 	}
-	cs8900_open();
+	local_eth->init(local_eth, NULL);
 	setup_arp_req(s_buf);	
 	if(!get_response(anlz_arq, 3)){
 		lprintf("server no response!\r\n");
@@ -380,7 +380,7 @@ static void tftp_run()
 			return;
 		}
 	}
-	cs8900_halt();
+	local_eth->halt(local_eth);
 	lprintf("tftp operation finished successfully!\r\n");
 	return;
 }
@@ -394,16 +394,16 @@ void tftp_put(unsigned char* name)
 	char *s;
 
 lprintf("name is %s\n", name);
-	if(!cs8900_is_ready()){
+	if(!local_eth->dev_is_ready()){
 		lprintf("cs8900 not ready!\r\n");
 		return;
 	}
-	cs8900_open();
+	local_eth->init();
 	/*clear buffer*/
 	memset(p_buf, 0, MAX_PACKAGE);
 	/*set 802.3 header*/
 	memset(ep->dest_mac, 0xff, 6);
-	memcpy(ep->src_mac, cs8900_mac, 6);
+	memcpy(ep->src_mac, local_eth->enetaddr, 6);
 	ep->protocol = 0x0608;
 	/*setup arp package*/
 	arp_p_p->hardware = 0x100;
@@ -411,20 +411,20 @@ lprintf("name is %s\n", name);
     	arp_p_p->hardware_addr_len = 6;
     	arp_p_p->protocol_addr_len = 4;
     	arp_p_p->operation = 0x100;
-	memcpy(arp_p_p->sender_mac, cs8900_mac, 6);
+	memcpy(arp_p_p->sender_mac, local_eth->enetaddr, 6);
 	memset(arp_p_p->target_mac, 0x0, 6);
     	memcpy(arp_p_p->sender_ip, &local_ip, 4);
     	memcpy(arp_p_p->target_ip, &server_ip, 4);
 	/*send package*/
 send_arp:
-        len = cs8900_send(p_buf, 60);
+        len = local_eth->send(p_buf, 60);
 	if(len != 60){
         	lprintf("send packages error\r\n");
 		return;
 	}
 	wait = 10;
 recv_package:
-	while(!(len = cs8900_recv(p_buf))){
+	while(!(len = local_eth->recv(p_buf))){
 		delay_us(1000);
 		if(!wait--)
 			break;
@@ -447,7 +447,7 @@ recv_package:
 	memcpy(p_buf, tftp_req, 64);
 	/*set 802.3 header*/
 	memcpy(ep->dest_mac, server_mac, 6);
-	memcpy(ep->src_mac, cs8900_mac, 6);
+	memcpy(ep->src_mac, local_eth->enetaddr, 6);
 
     	iutp->ip_header.id = 0x01;
     	memcpy(iutp->ip_header.sender_ip, &local_ip, 4);
@@ -479,14 +479,14 @@ print_mem(s, 32);
 	len = 64;
 	lprintf("send len is %x \r\n", len);
 send_tftp_req:
-        len1 = cs8900_send(p_buf, len);
+        len1 = local_eth->send(p_buf, len);
 	if(len != len){
         	lprintf("send packages error\r\n");
 		return;
 	}
 	wait = 10;
 	
-	cs8900_halt();
+	local_eth->halt();
 	lprintf("cs8900 is ready, please wait code ready!\r\n");
 }
 #endif

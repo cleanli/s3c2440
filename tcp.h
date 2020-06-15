@@ -3,7 +3,7 @@
 
 #define ARP_RESP 0x0002
 #define ARP_REQ 0x0001
-#define ARP 0x0806
+#define ARP_TYPE 0x0806
 
 #define REC_PAK_NUM 0x4fff
 
