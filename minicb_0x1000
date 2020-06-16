@@ -509,5 +509,10 @@ Start print 0x1000 mem content @31000000:
 Print end @31000000.
 
 CleanOS@S3C2440>
+
+CleanOS@S3C2440>sha256 31000000 1000
+sha256 digest of addr 31000000 len 1000:
+FB86A00D4FE07A25CB79CCD8A0012FFF4F44DAB802D12800AF98B40058BC21CC
+
 CTRL-A Z for help | 115200 8N1 | NOR | Minicom 2.7 | VT102 | Offline | ttyUSB0                                                                         
 
