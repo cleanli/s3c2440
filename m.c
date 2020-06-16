@@ -530,6 +530,7 @@ void vslprintf(char*s_buf, const char *fmt, ...)
                 sp += strlen(s);
                 break;
             case 'u':
+            case 'd':
                 d = va_arg(ap, uint32_t);
                 sp += sprint_uint(sp, d);
                 break;
@@ -1654,8 +1655,8 @@ error:
 
 }
 #define IPADDR(A, B, C, D) ((A)|(B)<<8|(C)<<16|(D)<<24)
-uint local_ip = IPADDR(192, 168, 58, 60);
-uint server_ip = IPADDR(192, 168, 58, 43);
+uint local_ip = IPADDR(192, 168, 8, 88);
+uint server_ip = IPADDR(192, 168, 8, 66);
 const unsigned char cs8900_mac[]={0x00, 0x43, 0x33, 0x2f, 0xde, 0x22};
 static const struct command cmd_list[]=
 {

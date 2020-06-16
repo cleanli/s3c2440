@@ -80,8 +80,8 @@ ulong get_timer(ulong base);
 		lprintf("%s: length: %d\n", func, length);		\
 		for (i = 0; i < length; i++) {				\
 			if (i % 8 == 0)					\
-				lprintf("\n%s: %02x: ", func, i);	\
-			lprintf("%02x ", ((unsigned char *) packet)[i]);	\
+				lprintf("\n%s: %b: ", func, i);	\
+			lprintf("%b ", ((unsigned char *) packet)[i]);	\
 		} lprintf("\n");						\
 	} while(0)
 #else
@@ -132,14 +132,14 @@ static void
 dump_regs(void)
 {
 	DM9000_DBG("\n");
-	DM9000_DBG("NCR   (0x00): %02x\n", DM9000_ior(0));
-	DM9000_DBG("NSR   (0x01): %02x\n", DM9000_ior(1));
-	DM9000_DBG("TCR   (0x02): %02x\n", DM9000_ior(2));
-	DM9000_DBG("TSRI  (0x03): %02x\n", DM9000_ior(3));
-	DM9000_DBG("TSRII (0x04): %02x\n", DM9000_ior(4));
-	DM9000_DBG("RCR   (0x05): %02x\n", DM9000_ior(5));
-	DM9000_DBG("RSR   (0x06): %02x\n", DM9000_ior(6));
-	DM9000_DBG("ISR   (0xFE): %02x\n", DM9000_ior(DM9000_ISR));
+	DM9000_DBG("NCR   (0x00): %b\n", DM9000_ior(0));
+	DM9000_DBG("NSR   (0x01): %b\n", DM9000_ior(1));
+	DM9000_DBG("TCR   (0x02): %b\n", DM9000_ior(2));
+	DM9000_DBG("TSRI  (0x03): %b\n", DM9000_ior(3));
+	DM9000_DBG("TSRII (0x04): %b\n", DM9000_ior(4));
+	DM9000_DBG("RCR   (0x05): %b\n", DM9000_ior(5));
+	DM9000_DBG("RSR   (0x06): %b\n", DM9000_ior(6));
+	DM9000_DBG("ISR   (0xFE): %b\n", DM9000_ior(DM9000_ISR));
 	DM9000_DBG("\n");
 }
 #endif
@@ -397,7 +397,7 @@ static int dm9000_init(struct eth_device *dev, bd_t *bd)
 	}
 	lprintf("mode\n");
 #endif
-	lprintf("dm9000 is ready.");
+	lprintf("dm9000 is ready.\n");
 	dm9000_not_ready = 0;
 	return 0;
 }
