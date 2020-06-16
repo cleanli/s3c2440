@@ -28,7 +28,7 @@ ARMCC_FLAGS+=-DGIT_SHA1=\"$(GIT_SHA1)$(DIRTY)$(CLEAN)\"
 m.bin:m.elf
 	$(ARMOC) -O binary m.elf m.bin
 	sha256sum m.bin
-	 ./tools/tftp -p -l m.bin 192.168.8.105 || tftp -m binary 192.168.58.54 -c put m.bin
+	 ./tools/tftp -p -l m.bin 192.168.8.66 || tftp -m binary 192.168.58.54 -c put m.bin
 	cp m.bin /tmp
 	$(ARMOD) -D -S m.elf > m.asm
 
