@@ -514,5 +514,50 @@ CleanOS@S3C2440>sha256 31000000 1000
 sha256 digest of addr 31000000 len 1000:
 FB86A00D4FE07A25CB79CCD8A0012FFF4F44DAB802D12800AF98B40058BC21CC
 
-CTRL-A Z for help | 115200 8N1 | NOR | Minicom 2.7 | VT102 | Offline | ttyUSB0                                                                         
+--------------------------------------------------
+CleanOS@S3C2440>r 31000000
+Read 0xEA000013 at memory 0x31000000
+
+CleanOS@S3C2440>nandcp 0 60000
+Copy Command:membuf=31000000, nandaddr=0, size=60000
+>>>>>>>>>>>>cp size 0x60000(0x300 pages) from nand addr 0 to memory 0x31000000 done!
+
+CleanOS@S3C2440>sha256 31010000 25590
+sha256 digest of addr 31010000 len 25590:
+427248277006E10B7FB113D10472B282FF26059CFC13EA5073FABE0485EE550A
+
+CleanOS@S3C2440>exit
+Exiting Clean OS...Bye!
+exit_os is true
+## Application terminated, rc = 0x0
+U@Cloud # print
+baudrate=115200
+hostname=CLOUD2440
+ethact=dm9000
+bootargs1=root=/dev/mtdblock2 rw console=ttySAC0,115200
+bootcmd1=nand read 32000000 60000 200000;bootm 32000000
+bootargs2=noinitrd root=/dev/sda1 rw init=/linuxrc console=ttySAC0,115200 rootdelay=8
+bootcmd2=nand read 32000000 60000 200000;bootm 32000000
+bootnamd2=Linux
+bootcmd3=lnandcp 30000000 48000 18000;go 30000000
+bootname1=QT
+bootname3=CleanBoot
+loadaddr=30000000
+bootcmd4=loady;go 30000000
+bootname4=debug cleanboot
+bootdelay=1
+bootcmd5=tftp m.bin;go 30000000
+bootname5=tftp debug
+filesize=135CC
+fileaddr=31000000
+netmask=255.255.255.0
+serverip=192.168.8.66
+ipaddr=192.168.8.88
+stdin=serial
+stdout=serial
+stderr=serial
+bootchoose=3
+
+Environment size: 689/16379 bytes
+
 
