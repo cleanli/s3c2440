@@ -71,7 +71,7 @@ TODO: external MII is not functional, only internal at the moment.
 //void eth_register(struct eth_device*dev);
 static uint dm9000_not_ready = 1;
 ulong get_timer(ulong base);
-#define CONFIG_DM9000_DEBUG
+//#define CONFIG_DM9000_DEBUG
 #ifdef CONFIG_DM9000_DEBUG
 #define DM9000_DBG(fmt,args...) lprintf(fmt, ##args)
 #define DM9000_DMP_PACKET(func,packet,length)  \
@@ -441,7 +441,7 @@ static int dm9000_send(struct eth_device *netdev, volatile void *packet,
 	DM9000_iow(DM9000_ISR, IMR_PTM); /* Clear Tx bit in ISR */
 
 	DM9000_DBG("transmit done\n\n");
-	return 0;
+	return length;
 }
 
 /*
@@ -472,8 +472,9 @@ static int dm9000_rx(struct eth_device *netdev, volatile void * rcv_buf)
 
 	/* Check packet ready or not, we must check
 	   the ISR status first for DM9000A */
-	if (!(DM9000_ior(DM9000_ISR) & 0x01)) /* Rx-ISR bit must be set. */
+	if (!(DM9000_ior(DM9000_ISR) & 0x01)){ /* Rx-ISR bit must be set. */
 		return 0;
+    }
 
 	DM9000_iow(DM9000_ISR, 0x01); /* clear PR status latched in bit 0 */
 
@@ -494,15 +495,16 @@ static int dm9000_rx(struct eth_device *netdev, volatile void * rcv_buf)
 			return 0;
 		}
 
-		if (rxbyte != DM9000_PKT_RDY)
+		if (rxbyte != DM9000_PKT_RDY){
 			return 0; /* No packet received, ignore */
+        }
 
 		DM9000_DBG("receiving packet\n");
 
 		/* A packet ready now  & Get status/length */
 		(db->rx_status)(&RxStatus, &RxLen);
 
-		DM9000_DBG("rx status: 0x%04x rx len: %d\n", RxStatus, RxLen);
+		DM9000_DBG("rx status: 0x%x rx len: %d\n", RxStatus, RxLen);
 
 		/* Move data from DM9000 */
 		/* Read received packet from RX SRAM */
@@ -525,10 +527,10 @@ static int dm9000_rx(struct eth_device *netdev, volatile void * rcv_buf)
 			}
 		} else {
 			DM9000_DMP_PACKET(__func__ , rdptr, RxLen);
-
+            return RxLen;
 		}
 	}
-	return 0;
+	return RxLen;
 }
 
 /*

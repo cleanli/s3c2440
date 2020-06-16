@@ -40,6 +40,6 @@ void vslprintf(char*s_buf, const char *fmt, ...);
     }
 #endif
 
-#define CDB lprint("From debug: %s %s %u \n\r", __FILE__, __func__, __LINE__);
+#define CDB lprintf("From debug: %s %s %u \n\r", __FILE__, __func__, __LINE__);
 
 #endif

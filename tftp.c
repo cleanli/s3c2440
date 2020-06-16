@@ -140,9 +140,16 @@ uint anlz_arq()
 {
 	struct arp_p *arp_p_p = (struct arp_p *)rep->datas;
 	if(rep->protocol != 0x0608 || arp_p_p->operation != 0x0200 \
-				|| !lmemequ(arp_p_p->sender_ip, (unsigned char*)&server_ip, 4))
+				|| !lmemequ(arp_p_p->sender_ip, (unsigned char*)&server_ip, 4)){
+        lprintf("Not arp reply\n");
 		return 0;//failed
-	memcpy(server_mac, arp_p_p->sender_mac, 6);
+    }
+    lprintf("Get arp reply\n");
+    memcpy(server_mac, arp_p_p->sender_mac, 6);
+    for(int i=0;i<6;i++){
+        lprintf("%b", server_mac[i]&0xff);
+    }
+    lprintf("\n");
 	return 1;
 }
 
@@ -169,7 +176,7 @@ uint recv_p()
 			else{
 				lprintf("recv asp and answered\r\n");
             }
-			while(1);
+			//while(1);
 		}
 		return 0;
 	}
@@ -178,35 +185,41 @@ uint recv_p()
 	
 uint get_response(uint (*anlz)(), uint try)
 {
-	uint len, wait;
-	
+    uint len, wait;
+
 send:
-        len = local_eth->send(local_eth, (unsigned short*)s_buf, send_len);
-        if(len != send_len){
-                lprintf("send packages error\r\n");
-                return 0;
-        }
+    len = local_eth->send(local_eth, (unsigned short*)s_buf, send_len);
+    if(len != send_len){
+        lprintf("send packages error len %u send_len %u\r\n",
+                len, send_len);
+        return 0;
+    }
 try_recv:
-        wait = 300;
-        while(!(len = recv_p())){
-                delay_us(10000);
-                if(!wait--)
-                        break;
-        }
+    wait = 300;
+    do{
+        len = recv_p();
+        lprintf("recv Len %u\n", len);
         if(!len){
-		if(try--){
-                	lprintf("no response, retrying\r\n");
-        	        delay_us(1000000);
-       		        goto send;
-		}
-		else{
-                	lprintf("give up.\r\n");
-			return 0;
-		}
+            delay_us(10000);
         }
-        if(!(*anlz)())
-                goto try_recv;
-	return 1;
+        else{
+            break;
+        }
+    }while(wait--);
+    if(!len){
+        if(try--){
+            lprintf("no response, retrying\r\n");
+            delay_us(1000000);
+            goto send;
+        }
+        else{
+            lprintf("give up.\r\n");
+            return 0;
+        }
+    }
+    if(!(*anlz)())
+        goto try_recv;
+    return 1;
 }	
 
 void setup_tftp_package()
@@ -326,6 +339,7 @@ uint anlz_tftp()
 			lprintf("\r\nfile size:0x%x(%d)\r\n", t_s.filesize = (t_s.block_n-1)*512 + data_len, t_s.filesize);
 		}
 		t_s.block_n++;
+        lprintf("OOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n");
 		return 1;
 	}
 	else{
