@@ -198,7 +198,7 @@ try_recv:
     wait = 300;
     do{
         len = recv_p();
-        lprintf("recv Len %u\n", len);
+        //lprintf("recv Len %u\n", len);
         if(!len){
             delay_us(10000);
         }
@@ -339,7 +339,6 @@ uint anlz_tftp()
 			lprintf("\r\nfile size:0x%x(%d)\r\n", t_s.filesize = (t_s.block_n-1)*512 + data_len, t_s.filesize);
 		}
 		t_s.block_n++;
-        lprintf("OOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n");
 		return 1;
 	}
 	else{
@@ -374,10 +373,10 @@ static void tftp_run()
 	t_s.port = 0;
 	t_s.running = 0;
 	if(!local_eth->dev_is_ready()){
-		lprintf("cs8900 not ready!\r\n");
-		return;
+        lprintf("can't init dm9000, quit\r\n");
+        return;
 	}
-	local_eth->init(local_eth, NULL);
+    local_eth->init(local_eth, NULL);
 	setup_arp_req(s_buf);	
 	if(!get_response(anlz_arq, 3)){
 		lprintf("server no response!\r\n");
@@ -394,7 +393,7 @@ static void tftp_run()
 			return;
 		}
 	}
-	local_eth->halt(local_eth);
+	//local_eth->halt(local_eth);
 	lprintf("tftp operation finished successfully!\r\n");
 	return;
 }
