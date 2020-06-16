@@ -399,6 +399,17 @@ void put_hex_uint(U32 i)
     }
 }
 
+int sput_hex_uint8(char*s, uint i)
+{
+    int c = 2;
+    char* p = s;
+    while(c--){
+        *p++ = (halfbyte2char((char)((i&0xf0)>>4)));
+        i<<=4;
+    }
+    return 2;
+}
+
 int sput_hex_uint(char*s, U32 i)
 {
     int c = 8;
@@ -536,12 +547,10 @@ void vslprintf(char*s_buf, const char *fmt, ...)
                 d = va_arg(ap, uint32_t);
                 sp += sput_hex_uint(sp, d);
                 break;
-	    /*
 	    case 'b':
                 d = va_arg(ap, uint32_t);
-                print_binary(d);
+                sp += sput_hex_uint8(sp, d);
                 break;
-        */
             /* Add other specifiers here... */             
             default: 
                 *sp++ = (*(fmt-1));

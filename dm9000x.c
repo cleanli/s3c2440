@@ -71,6 +71,7 @@ TODO: external MII is not functional, only internal at the moment.
 //void eth_register(struct eth_device*dev);
 static uint dm9000_not_ready = 1;
 ulong get_timer(ulong base);
+#define CONFIG_DM9000_DEBUG
 #ifdef CONFIG_DM9000_DEBUG
 #define DM9000_DBG(fmt,args...) lprintf(fmt, ##args)
 #define DM9000_DMP_PACKET(func,packet,length)  \
@@ -345,7 +346,7 @@ static int dm9000_init(struct eth_device *dev, bd_t *bd)
 	/* Clear interrupt status */
 	DM9000_iow(DM9000_ISR, ISR_ROOS | ISR_ROS | ISR_PTS | ISR_PRS);
 
-	lprintf("MAC: %pM\n", dev->enetaddr);
+	lprintf("MAC: %xM\n", dev->enetaddr);
 
 	/* fill device MAC address registers */
 	for (i = 0, oft = DM9000_PAR; i < 6; i++, oft++)
@@ -355,7 +356,7 @@ static int dm9000_init(struct eth_device *dev, bd_t *bd)
 
 	/* read back mac, just to be sure */
 	for (i = 0, oft = 0x10; i < 6; i++, oft++)
-		DM9000_DBG("%02x:", DM9000_ior(oft));
+		DM9000_DBG("%b:", DM9000_ior(oft));
 	DM9000_DBG("\n");
 
 	/* Activate DM9000 */
