@@ -35,7 +35,7 @@
 #define _VIDEO_FB_H_
 
 #define CONSOLE_BG_COL            0x00
-#define CONSOLE_FG_COL            0xa0
+#define CONSOLE_FG_COL            0xf0
 
 /*
  * Graphic Data Format (GDF) bits for VIDEO_DATA_FORMAT
