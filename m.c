@@ -1177,6 +1177,19 @@ error:
 }
 
 char result[SHA256_SUM_LEN];
+void compute_sha256(uint8 *bf, uint len)
+{
+    sha256_context my_ctx;
+    sha256_starts(&my_ctx);
+    sha256_update(&my_ctx, (char*)bf, len);
+    sha256_finish(&my_ctx, result);
+    lprint("sha256 digest of addr %x len %x:\r\n", bf, len);
+    for(int i=0;i<SHA256_SUM_LEN;i++){
+        puthexch(result[i]&0xff);
+    }
+    lprintf("\n");
+}
+
 void sha256(unsigned char *p)
 {
     int i;
@@ -1189,15 +1202,8 @@ void sha256(unsigned char *p)
     addr &= ~1;
     p = str_to_hex(p, &len);
 
-    sha256_context my_ctx;
-    sha256_starts(&my_ctx);
-    sha256_update(&my_ctx, (char*)addr, len);
-    sha256_finish(&my_ctx, result);
-    lprint("sha256 digest of addr %x len %x:\r\n", addr, len);
-    for(i=0;i<SHA256_SUM_LEN;i++){
-    puthexch(result[i]&0xff);
-    }
-    lprintf("\n");
+    compute_sha256((uint8*)addr, len);
+
     return;
 
 error:

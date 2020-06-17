@@ -1,6 +1,7 @@
 #include "cs8900.h"
 #include "type.h"
 #include "tcp.h"
+#include "common.h"
 #include "debug.h"
 #include "net.h"
 #include <string.h>
@@ -100,6 +101,7 @@ void tftp_put(unsigned char* name, uint sz, unsigned char *buf)
 	t_s.operation = 0;//put file to server
 	t_s.filesize = sz;
 	t_s.max_block = (t_s.filesize>>9) + 1;
+    compute_sha256((uint8*)buf, t_s.filesize);
 	tftp_run();
 }
 	
@@ -111,6 +113,7 @@ void tftp_get(unsigned char* name, unsigned char *buf)
 	t_s.membase = buf;
 	t_s.operation = 1;//get file from server
 	tftp_run();
+    compute_sha256((uint8*)buf, t_s.filesize);
 }
 
 static void setup_arp_req(unsigned char * buf)
@@ -373,27 +376,33 @@ static void tftp_run()
 	t_s.port = 0;
 	t_s.running = 0;
 	if(!local_eth->dev_is_ready()){
-        lprintf("can't init dm9000, quit\r\n");
-        return;
+        local_eth->init(local_eth, NULL);
+        if(!local_eth->dev_is_ready()){
+            lprintf("can't init dm9000, quit\r\n");
+            local_eth->halt(local_eth);
+            return;
+        }
 	}
-    local_eth->init(local_eth, NULL);
 	setup_arp_req(s_buf);	
 	if(!get_response(anlz_arq, 3)){
 		lprintf("server no response!\r\n");
+        local_eth->halt(local_eth);
 		return;
 	}
 	setup_tftp_package();
 	if(!get_response(anlz_tftp,0)){
 		lprintf("server no tftp response!\r\n");
+        local_eth->halt(local_eth);
 		return;
 	}
 	while(t_s.running){
 		if(!get_response(anlz_tftp, 0)){
 			lprintf("lost connection with server while transfering!\r\n");
+            local_eth->halt(local_eth);
 			return;
 		}
 	}
-	//local_eth->halt(local_eth);
+	local_eth->halt(local_eth);
 	lprintf("tftp operation finished successfully!\r\n");
 	return;
 }

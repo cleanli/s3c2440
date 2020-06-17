@@ -645,6 +645,7 @@ int dm9000_initialize()
 	strcpy(dev->name, "dm9000");
 
 	eth_register(dev);
+    dm9000_halt(dev);
 
 	return 0;
 }

@@ -48,4 +48,5 @@
 #define __le16_to_cpu(x) ((__u16)(x))
 
 void udelay (unsigned long usec);
+void compute_sha256(uint8 *bf, uint len);
 #endif
