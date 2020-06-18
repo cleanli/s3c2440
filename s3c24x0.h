@@ -651,9 +651,9 @@ struct s3c2410_sdi {
 	u32	SDIFSTA;
 #ifdef __BIG_ENDIAN
 	u8	res[3];
-	u8	SDIDAT;
+	u8	SDIDATb;
 #else
-	u8	SDIDAT;
+	u8	SDIDATb;
 	u8	res[3];
 #endif
 	u32	SDIIMSK;

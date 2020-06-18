@@ -42,6 +42,7 @@ enum UI_NAME_INDEX {
 #define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
 #define INTNUM_S3C2440 32
 //#define WAVE_DISP_VERTICAL
+void Test_SDI(void);
 int dm9000_initialize();
 void ui_init();
 int set_delayed_work(uint tct_10ms, func_p f, void*pa, int repeat);
@@ -1645,6 +1646,11 @@ error:
 
 }
 
+void mmc_test(unsigned char *p)
+{
+    Test_SDI();
+}
+
 void htod(unsigned char *p)
 {
     uint data,tmp;
@@ -1680,6 +1686,7 @@ static const struct command cmd_list[]=
     {"htod",htod,"transfer to demical from hex"},
     {"lcddraw",lcddraw,"lcd drawing"},
     {"mcp",memcopy,"memory copy"},
+    {"mmc",mmc_test,"mmc test"},
     {"nandcp",nandcp, "copy nand data to ram specified addr"},
     {"nander",nander, "erase nand"},
     {"nandpp",nandpp, "nand program page from memory"},

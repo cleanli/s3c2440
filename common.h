@@ -49,4 +49,5 @@
 
 void udelay (unsigned long usec);
 void compute_sha256(uint8 *bf, uint len);
+ulong get_PCLK(void);
 #endif
