@@ -83,8 +83,6 @@ void Test_SDI(void)
 
     Card_sel_desel(0);	// Card deselect
 
-    if(!CMD9())
-	Uart_Printf("Get CSD fail!!!\n");
     rSDIDCON=0;//tark???
     rSDICSTA=0xffff;
 	rGPEUP=save_rGPEUP;
@@ -193,6 +191,9 @@ RECMD3:
     Uart_Printf("\nIn stand-by\n");
     
 //    rSDIPRE=get_PCLK()/(2*NORCLK)-1;	// Normal clock=25MHz
+
+    if(!CMD9())
+	Uart_Printf("Get CSD fail!!!\n");
 
     Card_sel_desel(1);	// Select
 
