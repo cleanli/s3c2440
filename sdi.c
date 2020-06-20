@@ -346,20 +346,21 @@ int Chk_SD_OCR(void)
     //-- Negotiate operating condition for SD, it makes card ready state
     for(i=0;i<50;i++)	//If this time is short, init. can be fail.
     {
-    	CMD55();    // Make ACMD
+        CMD55();    // Make ACMD
 
-    	rSDICARG=0xff8000;	//ACMD41(SD OCR:2.7V~3.6V)
-//    	rSDICARG=0xffc000;	//ACMD41(MMC OCR:2.6V~3.6V)
-    	rSDICCON=(0x1<<9)|(0x1<<8)|0x69;//sht_resp, wait_resp, start, ACMD41
+        rSDICARG=0xff8000;	//ACMD41(SD OCR:2.7V~3.6V)
+        //    	rSDICARG=0xffc000;	//ACMD41(MMC OCR:2.6V~3.6V)
+        rSDICCON=(0x1<<9)|(0x1<<8)|0x69;//sht_resp, wait_resp, start, ACMD41
 
-	//-- Check end of ACMD41
-    	if( Chk_CMDend(41, 1) & rSDIRSP0==0x80ff8000 ) 
-	{
-	    rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
-
-	    return 1;	// Success	    
-	}
-	udelay(200*1000); // Wait Card power up status
+        //-- Check end of ACMD41
+        if( Chk_CMDend(41, 1)){ 
+            lprintf("-rSDIRSP0-- %x\n", rSDIRSP0);
+            if( rSDIRSP0==0x80ff8000 ) {
+                rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
+                return 1;	// Success	    
+            }
+        }
+        udelay(200*1000); // Wait Card power up status
     }
     //Uart_Printf("SDIRSP0=0x%x\n",rSDIRSP0);
     rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
