@@ -21,6 +21,7 @@
 
 #define Uart_Printf lprintf
 
+static void mmc_decode_csd(uint32_t * resp);
 int CMD13(void);    // Send card status
 int CMD9(void);
 // Global variables
@@ -417,6 +418,7 @@ int CMD13(void)//SEND_STATUS
 
 int CMD9(void)//SEND_CSD
 {
+    uint csd[4];
     rSDICARG=RCA<<16;				// CMD9(RCA,stuff bit)
     rSDICCON=(0x1<<10)|(0x1<<9)|(0x1<<8)|0x49;	// long_resp, wait_resp, start, CMD9
 
@@ -426,6 +428,11 @@ int CMD9(void)//SEND_CSD
 	return 0;
 
     Uart_Printf(" SDIRSP0=0x%x\n SDIRSP1=0x%x\n SDIRSP2=0x%x\n SDIRSP3=0x%x\n", rSDIRSP0,rSDIRSP1,rSDIRSP2,rSDIRSP3);
+    csd[3] = rSDIRSP3;
+    csd[2] = rSDIRSP2;
+    csd[1] = rSDIRSP1;
+    csd[0] = rSDIRSP0;
+    mmc_decode_csd(csd);
     return 1;
 }
 
@@ -627,7 +634,7 @@ static void mmc_decode_csd(uint32_t * resp)
 	mmc_dev_lba = (1 + UNSTUFF_BITS(resp, 62, 12)) * mult;
 	mmc_dev_blksz = 1 << UNSTUFF_BITS(resp, 80, 4);
 
-	lprintf("Detected: %lu blocks of %lu bytes (%luMB) ",
+	lprintf("Detected: %u blocks of %u bytes (%uMB) ",
 		mmc_dev_lba,
 		mmc_dev_blksz,
 		mmc_dev_lba * mmc_dev_blksz / (1024 * 1024));
