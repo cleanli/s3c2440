@@ -1666,7 +1666,7 @@ void mmc_cmd(unsigned char *p)
                 mrw_addr, sd_addr, data_size, data_size);
         opflag = SD_WRITE;
     }
-    SD_Op(opflag, sd_addr, data_size, mrw_addr);
+    SD_Op(opflag, sd_addr, data_size, (uint)mrw_addr);
     return;
 
 error:

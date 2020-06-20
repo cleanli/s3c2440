@@ -38,6 +38,7 @@ volatile unsigned int block;
 volatile unsigned int TR_end=0;
 uint mmc_dev_if_type = IF_TYPE_UNKNOWN;
 uint8 spec_ver;
+uint mmc_dev_lba, mmc_dev_blksz;
 
 int Wide=1; // 0:1bit, 1:4bit
 int MMC=0;  // 0:SD  , 1:MMC
@@ -68,8 +69,6 @@ void SD_Op(uint opflag, uint sdaddr, uint size, uint memaddr)
 //    rGPECON = 0xaaa800aa;	//SDCMD, SDDAT[3:0] => Input
 
 
-    Uart_Printf("\n[SDI test]\n");
-    
     if(!SD_card_init())
 	return;
  
@@ -122,7 +121,7 @@ int SD_card_init(void)
 
     for(i=0;i<0x1000;i++);  // Wait 74SDCLK for MMC card
 
-    Uart_Printf("rSDIRSP0=0x%x\n",rSDIRSP0);
+    //Uart_Printf("rSDIRSP0=0x%x\n",rSDIRSP0);
     CMD0();
  //   Uart_Printf("\nIn idle\n");
 
@@ -138,7 +137,7 @@ int SD_card_init(void)
 //    Uart_Printf("MMC check end!!\n");
     //-- Check SD card OCR
     if(Chk_SD_OCR()){ 
-        Uart_Printf("\n SD Card ready\n");
+        //Uart_Printf("\n SD Card ready\n");
         mmc_dev_if_type = IF_TYPE_SD;
     }
     else
@@ -157,14 +156,14 @@ RECMD2:
 	goto RECMD2;
     rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
 
-    Uart_Printf(" SDIRSP0=0x%x\n SDIRSP1=0x%x\n SDIRSP2=0x%x\n SDIRSP3=0x%x\n", rSDIRSP0,rSDIRSP1,rSDIRSP2,rSDIRSP3);
+    //Uart_Printf(" SDIRSP0=0x%x\n SDIRSP1=0x%x\n SDIRSP2=0x%x\n SDIRSP3=0x%x\n", rSDIRSP0,rSDIRSP1,rSDIRSP2,rSDIRSP3);
     cid[3] = rSDIRSP3;
     cid[2] = rSDIRSP2;
     cid[1] = rSDIRSP1;
     cid[0] = rSDIRSP0;
     mmc_decode_cid(cid);
 
-    Uart_Printf("\nEnd id\n");
+    //Uart_Printf("\nEnd id\n");
 
 RECMD3:
     //--Send RCA
@@ -196,7 +195,7 @@ RECMD3:
     if( rSDIRSP0 & 0x1e00!=0x600 )  // CURRENT_STATE check
 	goto RECMD3;
     
-    Uart_Printf("\nIn stand-by\n");
+    //Uart_Printf("\nIn stand-by\n");
     
 //    rSDIPRE=get_PCLK()/(2*NORCLK)-1;	// Normal clock=25MHz
 
@@ -284,7 +283,7 @@ int Chk_CMDend(int cmd, int be_resp)
 	{
 	    if( (finish0&0x1f00) != 0xa00 )	// Check error
 	    {
-		Uart_Printf("CMD%d:rSDICSTA=0x%x, rSDIRSP0=0x%x\n",cmd, rSDICSTA, rSDIRSP0);
+		//Uart_Printf("CMD%d:rSDICSTA=0x%x, rSDIRSP0=0x%x\n",cmd, rSDICSTA, rSDIRSP0);
 		rSDICSTA=finish0;   // Clear error state
 
 		if(((finish0&0x400)==0x400))
@@ -384,7 +383,7 @@ int Chk_SD_OCR(void)
 
         //-- Check end of ACMD41
         if( Chk_CMDend(41, 1)){ 
-            lprintf("-rSDIRSP0-- %x\n", rSDIRSP0);
+            lprintf("ACMD41 rSDIRSP0 %x\n", rSDIRSP0);
             if( rSDIRSP0==0x80ff8000 ) {
                 rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
                 return 1;	// Success	    
@@ -392,7 +391,7 @@ int Chk_SD_OCR(void)
         }
         udelay(200*1000); // Wait Card power up status
     }
-    Uart_Printf("SDIRSP0=0x%x\n",rSDIRSP0);
+    //Uart_Printf("SDIRSP0=0x%x\n",rSDIRSP0);
     rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
     return 0;		// Fail
 }
@@ -421,7 +420,7 @@ int CMD13(void)//SEND_STATUS
     //-- Check end of CMD13
     if(!Chk_CMDend(13, 1)) 
 	return 0;
-    Uart_Printf("rSDIRSP0=0x%x\n", rSDIRSP0);
+    //Uart_Printf("rSDIRSP0=0x%x\n", rSDIRSP0);
     if(rSDIRSP0&0x100){
         Uart_Printf("Ready for Data\n");
     }
@@ -445,12 +444,12 @@ int CMD9(void)//SEND_CSD
     rSDICARG=RCA<<16;				// CMD9(RCA,stuff bit)
     rSDICCON=(0x1<<10)|(0x1<<9)|(0x1<<8)|0x49;	// long_resp, wait_resp, start, CMD9
 
-    Uart_Printf("\n****CSD register****\n");
+    //Uart_Printf("\n****CSD register****\n");
     //-- Check end of CMD9
     if(!Chk_CMDend(9, 1)) 
 	return 0;
 
-    Uart_Printf(" SDIRSP0=0x%x\n SDIRSP1=0x%x\n SDIRSP2=0x%x\n SDIRSP3=0x%x\n", rSDIRSP0,rSDIRSP1,rSDIRSP2,rSDIRSP3);
+    //Uart_Printf(" SDIRSP0=0x%x\n SDIRSP1=0x%x\n SDIRSP2=0x%x\n SDIRSP3=0x%x\n", rSDIRSP0,rSDIRSP1,rSDIRSP2,rSDIRSP3);
     csd[3] = rSDIRSP3;
     csd[2] = rSDIRSP2;
     csd[1] = rSDIRSP1;
@@ -617,7 +616,7 @@ static void mmc_decode_cid(uint32_t * resp)
 			break;
 		}
 	}
-	lprintf("%s card.\nVendor: %s\nProduct: %s\nRevision: %s\n",
+	lprintf("%s card:\nVendor: %s\nProduct: %s\nRevision: %s\n",
 	       (IF_TYPE_SD == mmc_dev_if_type) ? "SD" : "MMC", mmc_dev_vendor,
 	       mmc_dev_product, mmc_dev_revision);
 }
@@ -628,7 +627,6 @@ static void mmc_decode_cid(uint32_t * resp)
 static void mmc_decode_csd(uint32_t * resp)
 {
 	unsigned int mult, csd_struct;
-    uint mmc_dev_lba, mmc_dev_blksz;
 
 	if (IF_TYPE_SD == mmc_dev_if_type) {
 		csd_struct = UNSTUFF_BITS(resp, 126, 2);
@@ -657,7 +655,7 @@ static void mmc_decode_csd(uint32_t * resp)
 	mmc_dev_lba = (1 + UNSTUFF_BITS(resp, 62, 12)) * mult;
 	mmc_dev_blksz = 1 << UNSTUFF_BITS(resp, 80, 4);
 
-	lprintf("Detected: %u blocks of %u bytes (%uMB) ",
+	lprintf("Volume: %u blocks of %u bytes (%uMB) ",
 		mmc_dev_lba,
 		mmc_dev_blksz,
 		mmc_dev_lba * mmc_dev_blksz / (1024 * 1024));
