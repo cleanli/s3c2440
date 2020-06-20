@@ -654,6 +654,7 @@ static void mmc_decode_csd(uint32_t * resp)
 	mult = 1 << (UNSTUFF_BITS(resp, 47, 3) + 2);
 	mmc_dev_lba = (1 + UNSTUFF_BITS(resp, 62, 12)) * mult;
 	mmc_dev_blksz = 1 << UNSTUFF_BITS(resp, 80, 4);
+    rSDIBSIZE=mmc_dev_blksz;
 
 	lprintf("Volume: %u(%x) blocks of %u bytes (%uMB) ",
 		mmc_dev_lba,
