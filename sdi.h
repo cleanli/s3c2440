@@ -1,6 +1,7 @@
 #ifndef __SD_H__
 #define __SD_H__
 
+#include "type.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -39,7 +40,7 @@ extern "C" {
 #define rGPEUP     (*(volatile unsigned *)0x56000048) //Pull-up control E
                         
 // Function prototypes
-void Test_SDI(void);
+void SD_Op(uint opflag, uint sdaddr, uint size, uint memaddr);
 void set_system_clock(void);
 int SD_card_init(void);
 
@@ -93,4 +94,9 @@ void View_Tx_buf(void);
 #define IF_TYPE_SD		7
 #define IF_TYPE_SATA		8
 
+enum SD_CMD_OPFLAG{
+    SD_INFO,
+    SD_READ,
+    SD_WRITE,
+};
 #endif /*__SD_H___*/

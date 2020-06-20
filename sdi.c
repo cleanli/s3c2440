@@ -48,7 +48,7 @@ int  Serial_Num;
 
 volatile int RCA;
 
-void Test_SDI(void)
+void SD_Op(uint opflag, uint sdaddr, uint size, uint memaddr)
 {
 	U32 save_rGPEUP, save_rGPECON;
 	int k;
@@ -73,8 +73,16 @@ void Test_SDI(void)
     if(!SD_card_init())
 	return;
  
-    ReadS(0,(int*)0x31000000,0x400);
-    lprintf("read 2 blocks from sd to 31000000 done\n");
+    if(opflag == SD_READ){
+        ReadS(sdaddr,(int*)memaddr,size);
+        lprintf("read %x from sd addr %X to mem %X done\n",
+                size, sdaddr, memaddr);
+    }
+    else if(opflag == SD_WRITE){
+        WriteS(sdaddr,(int*)memaddr,size);
+        lprintf("write %x to sd addr %X from mem %X done\n",
+                size, sdaddr, memaddr);
+    }
     
     if(MMC)
     {
@@ -425,7 +433,7 @@ int CMD13(void)//SEND_STATUS
     response0 = response0 >> 9;
     Uart_Printf("Current Status=%d\n", response0);
     if(response0==6)
-	Test_SDI();
+	SD_Op(SD_INFO, 0, 0, 0);
 
     rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
     return 1;

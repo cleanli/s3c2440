@@ -9,6 +9,7 @@
 #include "s3c2410.h"
 #include "rtc.h"
 #include "net.h"
+#include "sdi.h"
 
 enum UI_NAME_INDEX {
     UI_MAIN_MENU,
@@ -42,7 +43,6 @@ enum UI_NAME_INDEX {
 #define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
 #define INTNUM_S3C2440 32
 //#define WAVE_DISP_VERTICAL
-void Test_SDI(void);
 int dm9000_initialize();
 void ui_init();
 int set_delayed_work(uint tct_10ms, func_p f, void*pa, int repeat);
@@ -1644,9 +1644,33 @@ error:
 
 }
 
-void mmc_test(unsigned char *p)
+void mmc_cmd(unsigned char *p)
 {
-    Test_SDI();
+    uint sd_addr, data_size, tmp, opflag = SD_INFO;
+
+    tmp = get_howmany_para(p);
+    if(tmp == 1){
+        goto error;
+    }
+    else if(tmp == 2){
+        p = str_to_hex(p, &sd_addr);
+        p = str_to_hex(p, &data_size);
+        lprintf("SD Read:mem %X from sd addr %X, size %x(%u)\n",
+                mrw_addr, sd_addr, data_size, data_size);
+        opflag = SD_READ;
+    }
+    else if(tmp == 3){
+        p = str_to_hex(p, &sd_addr);
+        p = str_to_hex(p, &data_size);
+        lprintf("SD Write:mem %X to sd addr %X, size %x(%u)\n",
+                mrw_addr, sd_addr, data_size, data_size);
+        opflag = SD_WRITE;
+    }
+    SD_Op(opflag, sd_addr, data_size, mrw_addr);
+    return;
+
+error:
+    lprint("error para!\r\nmmc sd_addr data_size [w]\r\n");
 }
 
 void htod(unsigned char *p)
@@ -1684,7 +1708,7 @@ static const struct command cmd_list[]=
     {"htod",htod,"transfer to demical from hex"},
     {"lcddraw",lcddraw,"lcd drawing"},
     {"mcp",memcopy,"memory copy"},
-    {"mmc",mmc_test,"mmc test"},
+    {"mmc",mmc_cmd,"mmc cmd"},
     {"nandcp",nandcp, "copy nand data to ram specified addr"},
     {"nander",nander, "erase nand"},
     {"nandpp",nandpp, "nand program page from memory"},
