@@ -74,12 +74,12 @@ void SD_Op(uint opflag, uint sdaddr, uint size, uint memaddr)
  
     if(opflag == SD_READ){
         ReadS(sdaddr,(int*)memaddr,size);
-        lprintf("read %x from sd addr %X to mem %X done\n",
+        lprintf("read %x from sd block %X to mem %X done\n",
                 size, sdaddr, memaddr);
     }
     else if(opflag == SD_WRITE){
         WriteS(sdaddr,(int*)memaddr,size);
-        lprintf("write %x to sd addr %X from mem %X done\n",
+        lprintf("write %x to sd block %X from mem %X done\n",
                 size, sdaddr, memaddr);
     }
     
@@ -655,7 +655,8 @@ static void mmc_decode_csd(uint32_t * resp)
 	mmc_dev_lba = (1 + UNSTUFF_BITS(resp, 62, 12)) * mult;
 	mmc_dev_blksz = 1 << UNSTUFF_BITS(resp, 80, 4);
 
-	lprintf("Volume: %u blocks of %u bytes (%uMB) ",
+	lprintf("Volume: %u(%x) blocks of %u bytes (%uMB) ",
+		mmc_dev_lba,
 		mmc_dev_lba,
 		mmc_dev_blksz,
 		mmc_dev_lba * mmc_dev_blksz / (1024 * 1024));

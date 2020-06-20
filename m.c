@@ -901,7 +901,7 @@ static volatile unsigned short* LCD_BUFER;
 #define ENTER_CHAR 0x0d
 #define CLEAN_OS_VERSION "0.1"
 #define PLATFORM "S3C2440"
-static uint32_t * mrw_addr = 0x0;
+static uint32_t * mrw_addr = (uint32_t*)0x31000000;
 uint32_t cmd_buf_p = 0;
 uint32_t exit_os = 0;
 struct command{
@@ -1655,14 +1655,14 @@ void mmc_cmd(unsigned char *p)
     else if(tmp == 2){
         p = str_to_hex(p, &sd_addr);
         p = str_to_hex(p, &data_size);
-        lprintf("SD Read:mem %X from sd addr %X, size %x(%u)\n",
+        lprintf("SD Read:mem %X from sd block %X, size %x(%u)\n",
                 mrw_addr, sd_addr, data_size, data_size);
         opflag = SD_READ;
     }
     else if(tmp == 3){
         p = str_to_hex(p, &sd_addr);
         p = str_to_hex(p, &data_size);
-        lprintf("SD Write:mem %X to sd addr %X, size %x(%u)\n",
+        lprintf("SD Write:mem %X to sd block %X, size %x(%u)\n",
                 mrw_addr, sd_addr, data_size, data_size);
         opflag = SD_WRITE;
     }
@@ -1670,7 +1670,7 @@ void mmc_cmd(unsigned char *p)
     return;
 
 error:
-    lprint("error para!\r\nmmc sd_addr data_size [w]\r\n");
+    lprint("error para!\r\nmmc sd_block_no data_size [w]\r\n");
 }
 
 void htod(unsigned char *p)
