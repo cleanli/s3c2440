@@ -535,12 +535,10 @@ void vslprintf(char*s_buf, const char *fmt, ...)
                 d = va_arg(ap, uint32_t);
                 sp += sprint_uint(sp, d);
                 break;
-	    /*
 	    case 'c':
-                d = va_arg(ap, char);
-                send_int(d);
+                d = va_arg(ap, uint32_t);
+                *sp++ = d&0xff;
                 break;
-	    */
 	    case 'x':
                 d = va_arg(ap, uint32_t);
                 sp += sprint_hex(sp, d);

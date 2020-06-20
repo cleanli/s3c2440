@@ -22,6 +22,7 @@
 #define Uart_Printf lprintf
 
 static void mmc_decode_csd(uint32_t * resp);
+static void mmc_decode_cid(uint32_t * resp);
 int CMD13(void);    // Send card status
 int CMD9(void);
 // Global variables
@@ -94,6 +95,7 @@ int SD_card_init(void)
 //-- SD controller & card initialize 
     int i;
     char key;
+    uint cid[4];
 
 
     /* Important notice for MMC test condition */
@@ -144,6 +146,13 @@ RECMD2:
     if(!Chk_CMDend(2, 1)) 
 	goto RECMD2;
     rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
+
+    Uart_Printf(" SDIRSP0=0x%x\n SDIRSP1=0x%x\n SDIRSP2=0x%x\n SDIRSP3=0x%x\n", rSDIRSP0,rSDIRSP1,rSDIRSP2,rSDIRSP3);
+    cid[3] = rSDIRSP3;
+    cid[2] = rSDIRSP2;
+    cid[1] = rSDIRSP1;
+    cid[0] = rSDIRSP0;
+    mmc_decode_cid(cid);
 
     Uart_Printf("\nEnd id\n");
 
@@ -246,7 +255,7 @@ int Chk_CMDend(int cmd, int be_resp)
 
 		finish0=rSDICSTA;
 
-	if(cmd==1 | cmd==41)	// CRC no check, CMD9 is a long Resp. command.
+	if(cmd==1 || cmd==41)	// CRC no check, CMD9 is a long Resp. command.
 
 	{
 	    if( (finish0&0xf00) != 0xa00 )  // Check error
@@ -524,7 +533,7 @@ static void mmc_decode_cid(uint32_t * resp)
 		 * have to assume we can parse this.
 		 */
 		vslprintf((char *)mmc_dev_vendor,
-			"Man %02x OEM %c%c \"%c%c%c%c%c\" Date %02u/%04u",
+			"Man %b OEM %c%c \"%c%c%c%c%c\" Date %u/%u",
 			UNSTUFF_BITS(resp, 120, 8), UNSTUFF_BITS(resp, 112, 8),
 			UNSTUFF_BITS(resp, 104, 8), UNSTUFF_BITS(resp, 96, 8),
 			UNSTUFF_BITS(resp, 88, 8), UNSTUFF_BITS(resp, 80, 8),
