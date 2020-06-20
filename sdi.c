@@ -21,6 +21,8 @@
 
 #define Uart_Printf lprintf
 
+int ReadS(unsigned int address,unsigned int *data,unsigned int size);
+int WriteS(unsigned int address,unsigned int *data,unsigned int size);
 static void mmc_decode_csd(uint32_t * resp);
 static void mmc_decode_cid(uint32_t * resp);
 int CMD13(void);    // Send card status
@@ -71,6 +73,8 @@ void Test_SDI(void)
     if(!SD_card_init())
 	return;
  
+    ReadS(0,(int*)0x31000000,0x400);
+    lprintf("read 2 blocks from sd to 31000000 done\n");
     
     if(MMC)
     {
@@ -250,7 +254,7 @@ int Chk_CMDend(int cmd, int be_resp)
     else	// With response
     {
     	finish0=rSDICSTA;
-	while( !( ((finish0&0x200)==0x200) | ((finish0&0x400)==0x400) ))    // Check cmd/rsp end
+	while( !( ((finish0&0x200)==0x200) || ((finish0&0x400)==0x400) ))    // Check cmd/rsp end
 
 
 		finish0=rSDICSTA;
@@ -288,9 +292,10 @@ int Chk_DATend(void)
     int finish;
 
     finish=rSDIDSTA;
-    while( !( ((finish&0x10)==0x10) | ((finish&0x20)==0x20) ))	
-	// Chek timeout or data end
-	finish=rSDIDSTA;
+    while( !( ((finish&0x10)==0x10) || ((finish&0x20)==0x20) )){
+        // Chek timeout or data end
+        finish=rSDIDSTA;
+    }
 
     if( (finish&0xfc) != 0x10 )
     {
@@ -649,3 +654,148 @@ static void mmc_decode_csd(uint32_t * resp)
 		mmc_dev_lba * mmc_dev_blksz / (1024 * 1024));
 }
 
+int ReadS(unsigned int address,unsigned int *data,unsigned int size)   
+{   
+    int status,block;   
+
+    address=address<<9;   //address*512   
+
+    block=(size/512) + ((size%512 == 0)?0:1);   
+
+    rd_cnt=0;       
+
+    rSDIFSTA=rSDIFSTA|(1<<16);    // FIFO reset   
+    rSDIDCON=(2<<22)|(1<<19)|(1<<17)|(Wide<<16)|(1<<14)|(2<<12)|(block<<0);   
+
+    rSDICARG=address;   // CMD17/18(addr)   
+
+RERDCMD:   
+    if(block<2)  //SINGLE_READ      
+    {      
+        rSDICCON=(0x1<<9)|(0x1<<8)|0x51;    //sht_resp, wait_resp, dat, start, CMD24      
+        if(!Chk_CMDend(17,1))               //Check end of CMD17      
+            goto RERDCMD;      
+    }      
+    else    //MULTI_READ      
+    {      
+        rSDICCON=(0x1<<9)|(0x1<<8)|0x52;    //sht_resp, wait_resp, dat, start, CMD25      
+        if(!Chk_CMDend(18,1))               //Check end of CMD18      
+            goto RERDCMD;   
+    }   
+
+    rSDICSTA=0xa00; // Clear cmd_end(with rsp)   
+
+    while(rd_cnt<128*block)  // 512*block bytes   
+    {   
+        if((rSDIDSTA&0x20)==0x20) // Check timeout    
+        {   
+            rSDIDSTA=(0x1<<0x5);  // Clear timeout flag   
+            break;   
+        }   
+        status=rSDIFSTA;   
+        if((status&0x1000)==0x1000) // Is Rx data?   
+        {   
+            *data++ = rSDIDAT;   
+            rd_cnt++;   
+        }   
+    }   
+    //-- Check end of DATA   
+    if(!Chk_DATend())   
+    {   
+        Uart_Printf(0,"Dat error\n");   
+        rSDIDSTA=0x10;  // Clear data Tx/Rx end detect   
+        return 0;   
+    }   
+
+    rSDIDSTA=0x10;   
+
+    if(block>1)      
+    {      
+        do      
+        {      
+            rSDICARG=0x0;                       //CMD12(stuff bit)      
+            rSDICCON=(0x1<<9)|(0x1<<8)|0x4c;    //sht_resp, wait_resp, start, CMD12      
+        }while(!Chk_CMDend(12, 1));      
+    }    
+
+    rSDIDCON=rSDIDCON&~(7<<12);          
+    rSDIFSTA=rSDIFSTA&0x200;    //Clear Rx FIFO Last data Ready   
+
+    rSDIDSTA=0x10;  // Clear data Tx/Rx end detect   
+
+    return 1;   
+}   
+
+
+int WriteS(unsigned int address,unsigned int *data,unsigned int size)   
+{   
+    int status,block;   
+
+    address=address<<9;   //address*512   
+
+    block=(size/512) + ((size%512 == 0)?0:1);   
+
+    wt_cnt=0;       
+
+    rSDIFSTA=rSDIFSTA|(1<<16);    // FIFO reset   
+    rSDIDCON=(2<<22)|(1<<20)|(1<<17)|(Wide<<16)|(1<<14)|(3<<12)|(block<<0);   
+
+
+    rSDICARG=address;       // CMD24/25(addr)   
+
+REWTCMD:   
+    if(block<2)  //SINGLE_WRITE      
+    {      
+        rSDICCON=(0x1<<9)|(0x1<<8)|0x58;    //sht_resp, wait_resp, dat, start, CMD24      
+        if(!Chk_CMDend(24, 1))  //Check end of CMD24      
+            goto REWTCMD;      
+    }      
+    else    //MULTI_WRITE      
+    {      
+        rSDICCON=(0x1<<9)|(0x1<<8)|0x59;    //sht_resp, wait_resp, dat, start, CMD25      
+        if(!Chk_CMDend(25, 1))  //Check end of CMD25      
+            goto REWTCMD;   
+    }   
+
+    rSDICSTA=0xa00; // Clear cmd_end(with rsp)     
+    while(wt_cnt<128*block)   
+    {   
+        status=rSDIFSTA;   
+        if((status&0x2000)==0x2000)    
+        {   
+            rSDIDAT = *data++;   
+            wt_cnt++;   
+            //Uart_Printf("Block No.=%d, wt_cnt=%d\n",block,wt_cnt);   
+        }   
+    }   
+    //-- Check end of DATA   
+    if(!Chk_DATend())   
+    {   
+        Uart_Printf(0,"Dat error\n");   
+        rSDIDSTA=0x10;  // Clear data Tx/Rx end   
+        return 1;   
+    }   
+
+    if(block>1)      
+    {      
+        do   
+        {      
+            rSDIDCON=(1<<18)|(1<<17)|(0<<16)|(1<<12)|(block<<0);      
+
+            rSDICARG=0x0;                       //CMD12(stuff bit)      
+            rSDICCON=(0x1<<9)|(0x1<<8)|0x4c;    //sht_resp, wait_resp, start, CMD12      
+
+        }while(!Chk_CMDend(12,1));  //Stop cmd(CMD12)     
+
+        if(!Chk_BUSYend())      //Check end of DATA(with busy state)      
+            Uart_Printf(0,"Error\n");      
+
+        rSDIDSTA=0x08;      
+    }    
+
+    rSDIDCON=rSDIDCON&~(7<<12);       //Clear Data Transfer mode => no operation, Cleata Data Transfer start   
+
+    rSDIDSTA=0x10;  // Clear data Tx/Rx end   
+
+    return 0;   
+}   

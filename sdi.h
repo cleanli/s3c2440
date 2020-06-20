@@ -21,17 +21,17 @@ extern "C" {
 #define rSDIDCNT    (*(volatile unsigned *)0x5a000030) //SDI data remain counter
 #define rSDIDSTA    (*(volatile unsigned *)0x5a000034) //SDI data status
 #define rSDIFSTA    (*(volatile unsigned *)0x5a000038) //SDI FIFO status
-#define rSDIIMSK    (*(volatile unsigned *)0x5a000040) //SDI interrupt mask
+#define rSDIIMSK    (*(volatile unsigned *)0x5a00003c) //SDI interrupt mask
 
 #ifdef __BIG_ENDIAN
 #define rSDIDAT    (*(volatile unsigned *)0x5a00003f) //SDI data
 #define SDIDAT     0x5a00003f
 #else  // Little Endian
-#define rSDIDAT    (*(volatile unsigned *)0x5a00003c) //SDI data
+#define rSDIDAT    (*(volatile unsigned *)0x5a000040) //SDI data
 #ifdef SDIDAT
 #undef SDIDAT
 #endif
-#define SDIDAT (0x5a00003c)
+#define SDIDAT (0x5a000040)
 #endif   //SD Interface
 
 #define rGPECON    (*(volatile unsigned *)0x56000040) //Port E control
