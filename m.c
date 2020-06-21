@@ -1940,7 +1940,7 @@ void print_message()
     lprintf("|\r\n");
     lprintf("|\r\n");
     lprintf("|\r\n");
-    lprintf("0x48000\r\n");
+    lprintf("0x40000\r\n");
     lprintf("|\r\n");
     lprintf("|\r\n");
     lprintf("|           CleanBoot\r\n");
