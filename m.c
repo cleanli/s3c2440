@@ -43,6 +43,9 @@ enum UI_NAME_INDEX {
 #define rTCNTO4 (*(volatile unsigned *)0x51000040) //Timer count observation 4
 #define INTNUM_S3C2440 32
 //#define WAVE_DISP_VERTICAL
+
+int printenv(char*name, int state);
+void env_init();
 int dm9000_initialize();
 void ui_init();
 int set_delayed_work(uint tct_10ms, func_p f, void*pa, int repeat);
@@ -1688,6 +1691,11 @@ error:
     lprint("error para!\r\ndtoh (demical data)\r\n");
 
 }
+
+void pr_env(unsigned char *p)
+{
+    printenv(NULL, 1);
+}
 #define IPADDR(A, B, C, D) ((A)|(B)<<8|(C)<<16|(D)<<24)
 uint local_ip = IPADDR(192, 168, 8, 88);
 uint server_ip = IPADDR(192, 168, 8, 66);
@@ -1721,6 +1729,7 @@ static const struct command cmd_list[]=
     {"pfbs",put_file_by_serial,"put file by serial"},
 #endif
     {"pm",pm,"print memory content"},
+    {"printenv",pr_env,"print env list"},
     {"r",read_mem,"read mem, can set specified addr for other cmd"},
     {"reboot",reboot,"restart run program to zero addr"},
     {"rww",rw_word,"read/write word"},
@@ -2280,6 +2289,7 @@ int main(void)
     timer_init();
     AdcTS_init();
     random_init();
+    env_init();
     //cs8900_init(cs8900_mac);
     some_init();
 #if 0
