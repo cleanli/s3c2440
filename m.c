@@ -1115,7 +1115,7 @@ void print_mem(unsigned char *cp, uint length)
     uint i;
     uint* p_uint = (uint*) cp;
 
-    while(length){
+    while(length>=4){
         lprint("\r\n");
         put_hex_uint((uint)p_uint);
         putch(':');

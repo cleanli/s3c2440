@@ -189,7 +189,8 @@ u_char find_env(u_char*tmpchar, env_t *tmpenv)
 	len = (unsigned int)(p - tmpchar) - offset;
 	lprintf("len %x\n", len);
 	memcpy(tmpenv, tmpchar+offset, len);
-	memset(tmpenv+len, 0, CONFIG_ENV_SIZE-len);
+	memset((uint8*)tmpenv+len, 0, CONFIG_ENV_SIZE-len);
+    print_mem(tmpenv, len+32);
 	return offset/512 + get_page(len+1);
 err:
 	lprintf("error in env\n");
