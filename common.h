@@ -46,7 +46,15 @@
 #define __le32_to_cpu(x) ((__u32)(x))
 #define __cpu_to_le16(x) ((__u16)(x))
 #define __le16_to_cpu(x) ((__u16)(x))
+# define cpu_to_le32(x)		(x)
+# define le32_to_cpu(x)     (x)
 
+char getkey(void);
+void putch(int data);
+void nand_reset();
+int nand_read_ll(unsigned char *buf, unsigned long start_addr, int size);
+int nand_erase_ll(uint addr);
+int nand_write_ll(unsigned char *buf, unsigned long start_addr, int size);
 void udelay (unsigned long usec);
 void compute_sha256(uint8 *bf, uint len);
 ulong get_PCLK(void);

@@ -15,6 +15,7 @@ typedef uint16_t U16;
 typedef uint16_t ushort;
 typedef uint8_t u8;
 typedef uint8_t uchar;
+typedef uint8_t u_char;
 typedef void (*interrupt_func)(void);
 typedef void (*p_func)(void);
 typedef void (*func_p)(void*);
