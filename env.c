@@ -8,8 +8,6 @@
 #define CONFIG_ENV_OFFSET 0x8000
 #define CONFIG_ENV_OFFSET_REDUND 0xc000
 #define CONFIG_ENV_SIZE 0x4000
-uint8 env_ram1[CONFIG_ENV_SIZE];
-uint8 env_ram2[CONFIG_ENV_SIZE];
 unsigned long env_addr;	/* Address  of Environment struct */
 unsigned long env_valid;	/* Checksum of Environment valid? */
 u32 next_write_page1, next_write_page2;
@@ -24,6 +22,10 @@ typedef	struct environment_s {
 
 env_t inram_env1, inram_env2;
 env_t *env_ptr = 0;
+//uint8 env_ram1[CONFIG_ENV_SIZE];
+//uint8 env_ram2[CONFIG_ENV_SIZE];
+uint8* env_ram1 = (uint8*)&inram_env1;
+uint8* env_ram2 = (uint8*)&inram_env2;
 
 #define tole(x) (x)
 //#define tole(x) cpu_to_le32(x)
@@ -175,7 +177,6 @@ u_char find_env(u_char*tmpchar, env_t *tmpenv)
 	u_char * p = tmpchar + CONFIG_ENV_SIZE;
 	unsigned int offset, len;
 	
-	memset(tmpenv, 0, CONFIG_ENV_SIZE);
 	while((unsigned int)(--p) > (unsigned int)tmpchar){
 		if(*p != 0xff)
 			break;	
@@ -188,6 +189,7 @@ u_char find_env(u_char*tmpchar, env_t *tmpenv)
 	len = (unsigned int)(p - tmpchar) - offset;
 	lprintf("len %x\n", len);
 	memcpy(tmpenv, tmpchar+offset, len);
+	memset(tmpenv+len, 0, CONFIG_ENV_SIZE-len);
 	return offset/512 + get_page(len+1);
 err:
 	lprintf("error in env\n");
@@ -227,7 +229,9 @@ void env_init()
 
 	if(!crc1_ok && !crc2_ok) {
 		env_ptr = &inram_env1;
-		return use_default();
+		use_default();
+        env_addr = (ulong)&(env_ptr->data);
+        return;
 	} else if(crc1_ok && !crc2_ok)
 		env_valid = 1;
 	else if(!crc1_ok && crc2_ok)
