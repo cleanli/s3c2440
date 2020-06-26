@@ -49,6 +49,7 @@
 # define cpu_to_le32(x)		(x)
 # define le32_to_cpu(x)     (x)
 
+char *getenv (char *name);
 char getkey(void);
 void putch(int data);
 void nand_reset();
