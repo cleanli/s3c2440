@@ -100,6 +100,13 @@ static inline unsigned char __toupper(unsigned char c)
 
 #define tolower(c) __tolower(c)
 #define toupper(c) __toupper(c)
+#define __cpu_to_be32(x) ___swab32((x))
+#define ___swab32(x) \
+	((__u32)( \
+		(((__u32)(x) & (__u32)0x000000ffUL) << 24) | \
+		(((__u32)(x) & (__u32)0x0000ff00UL) <<  8) | \
+		(((__u32)(x) & (__u32)0x00ff0000UL) >>  8) | \
+		(((__u32)(x) & (__u32)0xff000000UL) >> 24) ))
 unsigned long simple_strtoul(const char *cp,char **endp,unsigned int base)
 {
 	unsigned long result = 0,value;
@@ -145,7 +152,7 @@ u32 string_to_ip(char *s)
 		}
 	}
 
-	return addr;
+	return __cpu_to_be32(addr);
 }
 
 int eth_register(struct eth_device*dev)
@@ -156,10 +163,12 @@ int eth_register(struct eth_device*dev)
     }
     //init ip from env
     if(tmpcp = getenv("serverip")){
+        lprintf("serverip:%s %X\n", tmpcp, server_ip);
         server_ip=string_to_ip(tmpcp);
         lprintf("serverip:%s %X\n", tmpcp, server_ip);
     }
     if(tmpcp = getenv("ipaddr")){
+        lprintf("ipaddr:%s %X\n", tmpcp, local_ip);
         local_ip=string_to_ip(tmpcp);
         lprintf("ipaddr:%s %X\n", tmpcp, local_ip);
     }
