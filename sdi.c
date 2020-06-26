@@ -1,7 +1,7 @@
 /*****************************************
-  NAME: sdi
-  DESC: SDI Bus Test
-  WWW.YCTEK.COM
+NAME: sdi
+DESC: SDI Bus Test
+WWW.YCTEK.COM
  *****************************************/
 #include <string.h>
 #include "sdi.h"
@@ -51,9 +51,9 @@ volatile int RCA;
 
 void SD_Op(uint opflag, uint sdaddr, uint size, uint memaddr)
 {
-	U32 save_rGPEUP, save_rGPECON;
-	int k;
-	
+    U32 save_rGPEUP, save_rGPECON;
+    int k;
+
     mmc_dev_if_type = IF_TYPE_UNKNOWN;
     spec_ver = 0;
     RCA=0;
@@ -61,17 +61,17 @@ void SD_Op(uint opflag, uint sdaddr, uint size, uint memaddr)
     //block=3072;   //3072Blocks=1.5MByte, ((2Block=1024Byte)*1024Block=1MByte)
     block=13;
 
-	save_rGPEUP=rGPEUP;
-	save_rGPECON=rGPECON;
-	
+    save_rGPEUP=rGPEUP;
+    save_rGPECON=rGPECON;
+
     rGPEUP  = 0xf83f;     // SDCMD, SDDAT[3:0] => PU En.
     rGPECON = 0xaaaaaaaa;	//SDCMD, SDDAT[3:0]
-//    rGPECON = 0xaaa800aa;	//SDCMD, SDDAT[3:0] => Input
+    //    rGPECON = 0xaaa800aa;	//SDCMD, SDDAT[3:0] => Input
 
 
     if(!SD_card_init())
-	return;
- 
+        return;
+
     if(opflag == SD_READ){
         ReadS(sdaddr,(int*)memaddr,size);
         lprintf("read %x from sd block %X to mem %X done\n",
@@ -82,18 +82,18 @@ void SD_Op(uint opflag, uint sdaddr, uint size, uint memaddr)
         lprintf("write %x to sd block %X from mem %X done\n",
                 size, sdaddr, memaddr);
     }
-    
+
     if(MMC)
     {
-		rSDICON |=(1<<5);    
+        rSDICON |=(1<<5);    
     }
 
     Card_sel_desel(0);	// Card deselect
 
     rSDIDCON=0;//tark???
     rSDICSTA=0xffff;
-	rGPEUP=save_rGPEUP;
-	rGPECON=save_rGPECON;	
+    rGPEUP=save_rGPEUP;
+    rGPECON=save_rGPECON;	
 }
 
 
@@ -101,7 +101,7 @@ void SD_Op(uint opflag, uint sdaddr, uint size, uint memaddr)
 
 int SD_card_init(void)
 {
-//-- SD controller & card initialize 
+    //-- SD controller & card initialize 
     int i;
     char key;
     uint cid[4];
@@ -111,11 +111,11 @@ int SD_card_init(void)
     /* Cmd & Data lines must be enabled by pull up resister */
 
     rSDIPRE=get_PCLK()/(INICLK)-1;	// 400KHz
-//	Uart_Printf("Init. Frequency is %dHz\n",(PCLK/(rSDIPRE+1)));
-    
-//    rSDICON=(1<<4)|(1<<1)|1;	// Type B, FIFO reset, clk enable
-	rSDICON=(1<<4)|1;	// Type B, clk enable
-	rSDIFSTA=rSDIFSTA|(1<<16);	//YH 040223 FIFO reset
+    //	Uart_Printf("Init. Frequency is %dHz\n",(PCLK/(rSDIPRE+1)));
+
+    //    rSDICON=(1<<4)|(1<<1)|1;	// Type B, FIFO reset, clk enable
+    rSDICON=(1<<4)|1;	// Type B, clk enable
+    rSDIFSTA=rSDIFSTA|(1<<16);	//YH 040223 FIFO reset
     rSDIBSIZE=0x200;		// 512byte(128word)
     rSDIDTIMER=0x7fffff;		// Set timeout count
 
@@ -123,18 +123,18 @@ int SD_card_init(void)
 
     //Uart_Printf("rSDIRSP0=0x%x\n",rSDIRSP0);
     CMD0();
- //   Uart_Printf("\nIn idle\n");
+    //   Uart_Printf("\nIn idle\n");
 
     //-- Check MMC card OCR
     if(Chk_MMC_OCR()) 
     {
-	Uart_Printf("\nIn MMC ready\n");
-	MMC=1;
-    mmc_dev_if_type = IF_TYPE_MMC;
-	goto RECMD2;
+        Uart_Printf("\nIn MMC ready\n");
+        MMC=1;
+        mmc_dev_if_type = IF_TYPE_MMC;
+        goto RECMD2;
     }
 
-//    Uart_Printf("MMC check end!!\n");
+    //    Uart_Printf("MMC check end!!\n");
     //-- Check SD card OCR
     if(Chk_SD_OCR()){ 
         //Uart_Printf("\n SD Card ready\n");
@@ -142,7 +142,7 @@ int SD_card_init(void)
     }
     else
     {
-		Uart_Printf("\nInitialize fail\nNo Card assertion\n");
+        Uart_Printf("\nInitialize fail\nNo Card assertion\n");
         return 0;
     }
 
@@ -153,7 +153,7 @@ RECMD2:
 
     //-- Check end of CMD2
     if(!Chk_CMDend(2, 1)) 
-	goto RECMD2;
+        goto RECMD2;
     rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
 
     //Uart_Printf(" SDIRSP0=0x%x\n SDIRSP1=0x%x\n SDIRSP2=0x%x\n SDIRSP3=0x%x\n", rSDIRSP0,rSDIRSP1,rSDIRSP2,rSDIRSP3);
@@ -172,42 +172,42 @@ RECMD3:
 
     //-- Check end of CMD3
     if(!Chk_CMDend(3, 1)) 
-	goto RECMD3;
+        goto RECMD3;
     rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
 
     //--Publish RCA
     if(MMC) {
-	RCA=1;
+        RCA=1;
 
         rSDIPRE=(get_PCLK()/MMCCLK)-1;	// YH 0812, Normal clock=20MHz
 
         Uart_Printf("MMC Frequency is %dHz\n",(get_PCLK()/(rSDIPRE+1)));
-    	}
+    }
     else 
-    	{
-			RCA=( rSDIRSP0 & 0xffff0000 )>>16;
-		    Uart_Printf("RCA=0x%x\n",RCA);
+    {
+        RCA=( rSDIRSP0 & 0xffff0000 )>>16;
+        Uart_Printf("RCA=0x%x\n",RCA);
 
-			rSDIPRE=get_PCLK()/(SDCLK)-1;	// Normal clock=25MHz
-			Uart_Printf("SD Frequency is %dHz\n",(get_PCLK()/(rSDIPRE+1)));
-    	}	//YH 0716
+        rSDIPRE=get_PCLK()/(SDCLK)-1;	// Normal clock=25MHz
+        Uart_Printf("SD Frequency is %dHz\n",(get_PCLK()/(rSDIPRE+1)));
+    }	//YH 0716
     //--State(stand-by) check
     if( rSDIRSP0 & 0x1e00!=0x600 )  // CURRENT_STATE check
-	goto RECMD3;
-    
+        goto RECMD3;
+
     //Uart_Printf("\nIn stand-by\n");
-    
-//    rSDIPRE=get_PCLK()/(2*NORCLK)-1;	// Normal clock=25MHz
+
+    //    rSDIPRE=get_PCLK()/(2*NORCLK)-1;	// Normal clock=25MHz
 
     if(!CMD9())
-	Uart_Printf("Get CSD fail!!!\n");
+        Uart_Printf("Get CSD fail!!!\n");
 
     Card_sel_desel(1);	// Select
 
     if(!MMC)
-	Set_4bit_bus();
+        Set_4bit_bus();
     else
-	Set_1bit_bus();
+        Set_1bit_bus();
 
     return 1;
 }
@@ -218,80 +218,80 @@ void Card_sel_desel(char sel_desel)
     if(sel_desel)
     {
 RECMDS7:	
-	rSDICARG=RCA<<16;	// CMD7(RCA,stuff bit)
-	rSDICCON= (0x1<<9)|(0x1<<8)|0x47;   // sht_resp, wait_resp, start, CMD7
+        rSDICARG=RCA<<16;	// CMD7(RCA,stuff bit)
+        rSDICCON= (0x1<<9)|(0x1<<8)|0x47;   // sht_resp, wait_resp, start, CMD7
 
-	//-- Check end of CMD7
-	if(!Chk_CMDend(7, 1))
-	    goto RECMDS7;
-	rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
+        //-- Check end of CMD7
+        if(!Chk_CMDend(7, 1))
+            goto RECMDS7;
+        rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
 
-	//--State(transfer) check
-	if( rSDIRSP0 & 0x1e00!=0x800 )
-	    goto RECMDS7;
+        //--State(transfer) check
+        if( rSDIRSP0 & 0x1e00!=0x800 )
+            goto RECMDS7;
     }
     else
     {
 RECMDD7:	
-	rSDICARG=0<<16;		//CMD7(RCA,stuff bit)
-	rSDICCON=(0x1<<8)|0x47;	//no_resp, start, CMD7
+        rSDICARG=0<<16;		//CMD7(RCA,stuff bit)
+        rSDICCON=(0x1<<8)|0x47;	//no_resp, start, CMD7
 
-	//-- Check end of CMD7
-	if(!Chk_CMDend(7, 0))
-	    goto RECMDD7;
-	rSDICSTA=0x800;	// Clear cmd_end(no rsp)
+        //-- Check end of CMD7
+        if(!Chk_CMDend(7, 0))
+            goto RECMDD7;
+        rSDICSTA=0x800;	// Clear cmd_end(no rsp)
     }
 }
 
 
 int Chk_CMDend(int cmd, int be_resp)
-//0: Timeout
+    //0: Timeout
 {
     int finish0;
 
     if(!be_resp)    // No response
     {
-    	finish0=rSDICSTA;
-		while((finish0&0x800)!=0x800)	// Check cmd end
-	    finish0=rSDICSTA;
+        finish0=rSDICSTA;
+        while((finish0&0x800)!=0x800)	// Check cmd end
+            finish0=rSDICSTA;
 
-	rSDICSTA=finish0;// Clear cmd end state
+        rSDICSTA=finish0;// Clear cmd end state
 
-	return 1;
+        return 1;
     }
     else	// With response
     {
-    	finish0=rSDICSTA;
-	while( !( ((finish0&0x200)==0x200) || ((finish0&0x400)==0x400) ))    // Check cmd/rsp end
+        finish0=rSDICSTA;
+        while( !( ((finish0&0x200)==0x200) || ((finish0&0x400)==0x400) ))    // Check cmd/rsp end
 
 
-		finish0=rSDICSTA;
+            finish0=rSDICSTA;
 
-	if(cmd==1 || cmd==41)	// CRC no check, CMD9 is a long Resp. command.
+        if(cmd==1 || cmd==41)	// CRC no check, CMD9 is a long Resp. command.
 
-	{
-	    if( (finish0&0xf00) != 0xa00 )  // Check error
-	    {
-		rSDICSTA=finish0;   // Clear error state
+        {
+            if( (finish0&0xf00) != 0xa00 )  // Check error
+            {
+                rSDICSTA=finish0;   // Clear error state
 
-		if(((finish0&0x400)==0x400))
-		    return 0;	// Timeout error
-    	    }
-	    rSDICSTA=finish0;	// Clear cmd & rsp end state
-	}
-	else	// CRC check
-	{
-	    if( (finish0&0x1f00) != 0xa00 )	// Check error
-	    {
-		//Uart_Printf("CMD%d:rSDICSTA=0x%x, rSDIRSP0=0x%x\n",cmd, rSDICSTA, rSDIRSP0);
-		rSDICSTA=finish0;   // Clear error state
+                if(((finish0&0x400)==0x400))
+                    return 0;	// Timeout error
+            }
+            rSDICSTA=finish0;	// Clear cmd & rsp end state
+        }
+        else	// CRC check
+        {
+            if( (finish0&0x1f00) != 0xa00 )	// Check error
+            {
+                //Uart_Printf("CMD%d:rSDICSTA=0x%x, rSDIRSP0=0x%x\n",cmd, rSDICSTA, rSDIRSP0);
+                rSDICSTA=finish0;   // Clear error state
 
-		if(((finish0&0x400)==0x400))
-		    return 0;	// Timeout error
-    	    }
-	    rSDICSTA=finish0;
-	}
-	return 1;
+                if(((finish0&0x400)==0x400))
+                    return 0;	// Timeout error
+            }
+            rSDICSTA=finish0;
+        }
+        return 1;
     }
 }
 
@@ -357,19 +357,19 @@ int Chk_MMC_OCR(void)
     //-- Negotiate operating condition for MMC, it makes card ready state
     for(i=0;i<100;i++)	//Negotiation time is dependent on CARD Vendors.
     {
-//    	rSDICARG=0xffc000;	    	    //CMD1(MMC OCR:2.6V~3.6V)
-		rSDICARG=0xff8000;	    	    //CMD1(SD OCR:2.7V~3.6V)
-    	rSDICCON=(0x1<<9)|(0x1<<8)|0x41;    //sht_resp, wait_resp, start, CMD1
+        //    	rSDICARG=0xffc000;	    	    //CMD1(MMC OCR:2.6V~3.6V)
+        rSDICARG=0xff8000;	    	    //CMD1(SD OCR:2.7V~3.6V)
+        rSDICCON=(0x1<<9)|(0x1<<8)|0x41;    //sht_resp, wait_resp, start, CMD1
 
-    	//-- Check end of CMD1
-// 	if(Chk_CMDend(1, 1) & rSDIRSP0==0x80ffc000)	//[31]:Card Power up status bit (busy)
-		//0xffc000 is Voltage window
-	if(Chk_CMDend(1, 1) && (rSDIRSP0>>16)==0x80ff) //YH 0903 [31]:Card Power up status bit (busy)
-//	if(Chk_CMDend(1, 1) & rSDIRSP0==0x80ff8000) 
-	{
-	    rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
-	    return 1;	// Success
-	}
+        //-- Check end of CMD1
+        // 	if(Chk_CMDend(1, 1) & rSDIRSP0==0x80ffc000)	//[31]:Card Power up status bit (busy)
+        //0xffc000 is Voltage window
+        if(Chk_CMDend(1, 1) && (rSDIRSP0>>16)==0x80ff) //YH 0903 [31]:Card Power up status bit (busy)
+            //	if(Chk_CMDend(1, 1) & rSDIRSP0==0x80ff8000) 
+        {
+            rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
+            return 1;	// Success
+        }
     }
     rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
     return 0;		// Fail
@@ -411,7 +411,7 @@ int CMD55(void)
 
     //-- Check end of CMD55
     if(!Chk_CMDend(55, 1)) 
-	return 0;
+        return 0;
 
     rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
     return 1;
@@ -426,7 +426,7 @@ int CMD13(void)//SEND_STATUS
 
     //-- Check end of CMD13
     if(!Chk_CMDend(13, 1)) 
-	return 0;
+        return 0;
     //Uart_Printf("rSDIRSP0=0x%x\n", rSDIRSP0);
     if(rSDIRSP0&0x100){
         Uart_Printf("Ready for Data\n");
@@ -439,7 +439,7 @@ int CMD13(void)//SEND_STATUS
     response0 = response0 >> 9;
     Uart_Printf("Current Status=%d\n", response0);
     if(response0==6)
-	SD_Op(SD_INFO, 0, 0, 0);
+        SD_Op(SD_INFO, 0, 0, 0);
 
     rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
     return 1;
@@ -454,7 +454,7 @@ int CMD9(void)//SEND_CSD
     //Uart_Printf("\n****CSD register****\n");
     //-- Check end of CMD9
     if(!Chk_CMDend(9, 1)) 
-	return 0;
+        return 0;
 
     //Uart_Printf(" SDIRSP0=0x%x\n SDIRSP1=0x%x\n SDIRSP2=0x%x\n SDIRSP3=0x%x\n", rSDIRSP0,rSDIRSP1,rSDIRSP2,rSDIRSP3);
     csd[3] = rSDIRSP3;
@@ -469,7 +469,7 @@ void Set_1bit_bus(void)
 {
     Wide=0;
     if(!MMC)
-	SetBus();
+        SetBus();
     Uart_Printf("\n****1bit bus****\n");
 }
 
@@ -489,7 +489,7 @@ SET_BUS:
     rSDICCON=(0x1<<9)|(0x1<<8)|0x46;	//sht_resp, wait_resp, start, CMD55
 
     if(!Chk_CMDend(6, 1))   // ACMD6
-	goto SET_BUS;
+        goto SET_BUS;
     rSDICSTA=0xa00;	    // Clear cmd_end(with rsp)
 }
 
@@ -505,7 +505,7 @@ RECMD28:
 
     //-- Check end of CMD28
     if(!Chk_CMDend(28, 1)) 
-	goto RECMD28;
+        goto RECMD28;
     rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
 }
 
@@ -521,23 +521,23 @@ RECMD29:
 
     //-- Check end of CMD29
     if(!Chk_CMDend(29, 1)) 
-	goto RECMD29;
+        goto RECMD29;
     rSDICSTA=0xa00;	// Clear cmd_end(with rsp)
 }
 
 #define UNSTUFF_BITS(resp,start,size)					\
-	({								\
-		const int __size = size;				\
-		const uint32_t __mask = (__size < 32 ? 1 << __size : 0) - 1;	\
-		const int32_t __off = 3 - ((start) / 32);			\
-		const int32_t __shft = (start) & 31;			\
-		uint32_t __res;						\
-									\
-		__res = resp[__off] >> __shft;				\
-		if (__size + __shft > 32)				\
-			__res |= resp[__off-1] << ((32 - __shft) % 32);	\
-		__res & __mask;						\
-	})
+    ({								\
+     const int __size = size;				\
+     const uint32_t __mask = (__size < 32 ? 1 << __size : 0) - 1;	\
+     const int32_t __off = 3 - ((start) / 32);			\
+     const int32_t __shft = (start) & 31;			\
+     uint32_t __res;						\
+     \
+     __res = resp[__off] >> __shft;				\
+     if (__size + __shft > 32)				\
+     __res |= resp[__off-1] << ((32 - __shft) % 32);	\
+     __res & __mask;						\
+     })
 
 /*
  * Given the decoded CSD structure, decode the raw CID to our CID structure.
@@ -547,85 +547,85 @@ static void mmc_decode_cid(uint32_t * resp)
     char mmc_dev_vendor[40+1];
     char mmc_dev_product[20+1];
     char mmc_dev_revision[8+1];
-	if (IF_TYPE_SD == mmc_dev_if_type) {
-		/*
-		 * SD doesn't currently have a version field so we will
-		 * have to assume we can parse this.
-		 */
-		vslprintf((char *)mmc_dev_vendor,
-			"Man %b OEM %c%c \"%c%c%c%c%c\" Date %u/%u",
-			UNSTUFF_BITS(resp, 120, 8), UNSTUFF_BITS(resp, 112, 8),
-			UNSTUFF_BITS(resp, 104, 8), UNSTUFF_BITS(resp, 96, 8),
-			UNSTUFF_BITS(resp, 88, 8), UNSTUFF_BITS(resp, 80, 8),
-			UNSTUFF_BITS(resp, 72, 8), UNSTUFF_BITS(resp, 64, 8),
-			UNSTUFF_BITS(resp, 8, 4), UNSTUFF_BITS(resp, 12,
-							       8) + 2000);
-		vslprintf((char *)mmc_dev_revision, "%d.%d",
-			UNSTUFF_BITS(resp, 60, 4), UNSTUFF_BITS(resp, 56, 4));
-		vslprintf((char *)mmc_dev_product, "%u",
-			UNSTUFF_BITS(resp, 24, 32));
-	} else {
-		/*
-		 * The selection of the format here is based upon published
-		 * specs from sandisk and from what people have reported.
-		 */
-		switch (spec_ver) {
-		case 0:	/* MMC v1.0 - v1.2 */
-		case 1:	/* MMC v1.4 */
-			vslprintf((char *)mmc_dev_vendor,
-				"Man %02x%02x%02x \"%c%c%c%c%c%c%c\" Date %02u/%04u",
-				UNSTUFF_BITS(resp, 120, 8), UNSTUFF_BITS(resp,
-									 112,
-									 8),
-				UNSTUFF_BITS(resp, 104, 8), UNSTUFF_BITS(resp,
-									 96, 8),
-				UNSTUFF_BITS(resp, 88, 8), UNSTUFF_BITS(resp,
-									80, 8),
-				UNSTUFF_BITS(resp, 72, 8), UNSTUFF_BITS(resp,
-									64, 8),
-				UNSTUFF_BITS(resp, 56, 8), UNSTUFF_BITS(resp,
-									48, 8),
-				UNSTUFF_BITS(resp, 12, 4), UNSTUFF_BITS(resp, 8,
-									4) +
-				1997);
-			vslprintf((char *)mmc_dev_revision, "%d.%d",
-				UNSTUFF_BITS(resp, 44, 4), UNSTUFF_BITS(resp,
-									40, 4));
-			vslprintf((char *)mmc_dev_product, "%u",
-				UNSTUFF_BITS(resp, 16, 24));
-			break;
+    if (IF_TYPE_SD == mmc_dev_if_type) {
+        /*
+         * SD doesn't currently have a version field so we will
+         * have to assume we can parse this.
+         */
+        vslprintf((char *)mmc_dev_vendor,
+                "Man %b OEM %c%c \"%c%c%c%c%c\" Date %u/%u",
+                UNSTUFF_BITS(resp, 120, 8), UNSTUFF_BITS(resp, 112, 8),
+                UNSTUFF_BITS(resp, 104, 8), UNSTUFF_BITS(resp, 96, 8),
+                UNSTUFF_BITS(resp, 88, 8), UNSTUFF_BITS(resp, 80, 8),
+                UNSTUFF_BITS(resp, 72, 8), UNSTUFF_BITS(resp, 64, 8),
+                UNSTUFF_BITS(resp, 8, 4), UNSTUFF_BITS(resp, 12,
+                    8) + 2000);
+        vslprintf((char *)mmc_dev_revision, "%d.%d",
+                UNSTUFF_BITS(resp, 60, 4), UNSTUFF_BITS(resp, 56, 4));
+        vslprintf((char *)mmc_dev_product, "%u",
+                UNSTUFF_BITS(resp, 24, 32));
+    } else {
+        /*
+         * The selection of the format here is based upon published
+         * specs from sandisk and from what people have reported.
+         */
+        switch (spec_ver) {
+            case 0:	/* MMC v1.0 - v1.2 */
+            case 1:	/* MMC v1.4 */
+                vslprintf((char *)mmc_dev_vendor,
+                        "Man %02x%02x%02x \"%c%c%c%c%c%c%c\" Date %02u/%04u",
+                        UNSTUFF_BITS(resp, 120, 8), UNSTUFF_BITS(resp,
+                            112,
+                            8),
+                        UNSTUFF_BITS(resp, 104, 8), UNSTUFF_BITS(resp,
+                            96, 8),
+                        UNSTUFF_BITS(resp, 88, 8), UNSTUFF_BITS(resp,
+                            80, 8),
+                        UNSTUFF_BITS(resp, 72, 8), UNSTUFF_BITS(resp,
+                            64, 8),
+                        UNSTUFF_BITS(resp, 56, 8), UNSTUFF_BITS(resp,
+                            48, 8),
+                        UNSTUFF_BITS(resp, 12, 4), UNSTUFF_BITS(resp, 8,
+                            4) +
+                        1997);
+                vslprintf((char *)mmc_dev_revision, "%d.%d",
+                        UNSTUFF_BITS(resp, 44, 4), UNSTUFF_BITS(resp,
+                            40, 4));
+                vslprintf((char *)mmc_dev_product, "%u",
+                        UNSTUFF_BITS(resp, 16, 24));
+                break;
 
-		case 2:	/* MMC v2.0 - v2.2 */
-		case 3:	/* MMC v3.1 - v3.3 */
-		case 4:	/* MMC v4 */
-			vslprintf((char *)mmc_dev_vendor,
-				"Man %02x OEM %04x \"%c%c%c%c%c%c\" Date %02u/%04u",
-				UNSTUFF_BITS(resp, 120, 8), UNSTUFF_BITS(resp,
-									 104,
-									 16),
-				UNSTUFF_BITS(resp, 96, 8), UNSTUFF_BITS(resp,
-									88, 8),
-				UNSTUFF_BITS(resp, 80, 8), UNSTUFF_BITS(resp,
-									72, 8),
-				UNSTUFF_BITS(resp, 64, 8), UNSTUFF_BITS(resp,
-									56, 8),
-				UNSTUFF_BITS(resp, 12, 4), UNSTUFF_BITS(resp, 8,
-									4) +
-				1997);
-			vslprintf((char *)mmc_dev_product, "%u",
-				UNSTUFF_BITS(resp, 16, 32));
-			vslprintf((char *)mmc_dev_revision, "N/A");
-			break;
+            case 2:	/* MMC v2.0 - v2.2 */
+            case 3:	/* MMC v3.1 - v3.3 */
+            case 4:	/* MMC v4 */
+                vslprintf((char *)mmc_dev_vendor,
+                        "Man %02x OEM %04x \"%c%c%c%c%c%c\" Date %02u/%04u",
+                        UNSTUFF_BITS(resp, 120, 8), UNSTUFF_BITS(resp,
+                            104,
+                            16),
+                        UNSTUFF_BITS(resp, 96, 8), UNSTUFF_BITS(resp,
+                            88, 8),
+                        UNSTUFF_BITS(resp, 80, 8), UNSTUFF_BITS(resp,
+                            72, 8),
+                        UNSTUFF_BITS(resp, 64, 8), UNSTUFF_BITS(resp,
+                            56, 8),
+                        UNSTUFF_BITS(resp, 12, 4), UNSTUFF_BITS(resp, 8,
+                            4) +
+                        1997);
+                vslprintf((char *)mmc_dev_product, "%u",
+                        UNSTUFF_BITS(resp, 16, 32));
+                vslprintf((char *)mmc_dev_revision, "N/A");
+                break;
 
-		default:
-			lprintf("MMC card has unknown MMCA version %d\n",
-			       spec_ver);
-			break;
-		}
-	}
-	lprintf("%s card:\nVendor: %s\nProduct: %s\nRevision: %s\n",
-	       (IF_TYPE_SD == mmc_dev_if_type) ? "SD" : "MMC", mmc_dev_vendor,
-	       mmc_dev_product, mmc_dev_revision);
+            default:
+                lprintf("MMC card has unknown MMCA version %d\n",
+                        spec_ver);
+                break;
+        }
+    }
+    lprintf("%s card:\nVendor: %s\nProduct: %s\nRevision: %s\n",
+            (IF_TYPE_SD == mmc_dev_if_type) ? "SD" : "MMC", mmc_dev_vendor,
+            mmc_dev_product, mmc_dev_revision);
 }
 
 /*
@@ -633,41 +633,41 @@ static void mmc_decode_cid(uint32_t * resp)
  */
 static void mmc_decode_csd(uint32_t * resp)
 {
-	unsigned int mult, csd_struct;
+    unsigned int mult, csd_struct;
 
-	if (IF_TYPE_SD == mmc_dev_if_type) {
-		csd_struct = UNSTUFF_BITS(resp, 126, 2);
-		if (csd_struct != 0) {
-			lprintf("SD: unrecognised CSD structure version %d\n",
-			       csd_struct);
-			return;
-		}
-	} else {
-		/*
-		 * We only understand CSD structure v1.1 and v1.2.
-		 * v1.2 has extra information in bits 15, 11 and 10.
-		 */
-		csd_struct = UNSTUFF_BITS(resp, 126, 2);
-		if (csd_struct != 1 && csd_struct != 2) {
-			lprintf("MMC: unrecognised CSD structure version %d\n",
-			       csd_struct);
-			return;
-		}
+    if (IF_TYPE_SD == mmc_dev_if_type) {
+        csd_struct = UNSTUFF_BITS(resp, 126, 2);
+        if (csd_struct != 0) {
+            lprintf("SD: unrecognised CSD structure version %d\n",
+                    csd_struct);
+            return;
+        }
+    } else {
+        /*
+         * We only understand CSD structure v1.1 and v1.2.
+         * v1.2 has extra information in bits 15, 11 and 10.
+         */
+        csd_struct = UNSTUFF_BITS(resp, 126, 2);
+        if (csd_struct != 1 && csd_struct != 2) {
+            lprintf("MMC: unrecognised CSD structure version %d\n",
+                    csd_struct);
+            return;
+        }
 
-		spec_ver = UNSTUFF_BITS(resp, 122, 4);
-		mmc_dev_if_type = IF_TYPE_MMC;
-	}
+        spec_ver = UNSTUFF_BITS(resp, 122, 4);
+        mmc_dev_if_type = IF_TYPE_MMC;
+    }
 
-	mult = 1 << (UNSTUFF_BITS(resp, 47, 3) + 2);
-	mmc_dev_lba = (1 + UNSTUFF_BITS(resp, 62, 12)) * mult;
-	mmc_dev_blksz = 1 << UNSTUFF_BITS(resp, 80, 4);
+    mult = 1 << (UNSTUFF_BITS(resp, 47, 3) + 2);
+    mmc_dev_lba = (1 + UNSTUFF_BITS(resp, 62, 12)) * mult;
+    mmc_dev_blksz = 1 << UNSTUFF_BITS(resp, 80, 4);
     rSDIBSIZE=mmc_dev_blksz;
 
-	lprintf("Volume: %u(%x) blocks of %u bytes (%uMB) ",
-		mmc_dev_lba,
-		mmc_dev_lba,
-		mmc_dev_blksz,
-		mmc_dev_lba * mmc_dev_blksz / (1024 * 1024));
+    lprintf("Volume: %u(%x) blocks of %u bytes (%uMB) ",
+            mmc_dev_lba,
+            mmc_dev_lba,
+            mmc_dev_blksz,
+            mmc_dev_lba * mmc_dev_blksz / (1024 * 1024));
 }
 
 int ReadS(unsigned int address,unsigned int *data,unsigned int size)   
