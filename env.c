@@ -251,6 +251,7 @@ void env_init()
 
 	}
 
+    lprintf("valid env index %u\n", env_valid);
 	if(env_valid == 1) {
 		env_ptr = &inram_env1;
 	} else {
@@ -329,4 +330,39 @@ int printenv(char *name, int state)
 	if (state == 0)
 		i = 0;
 	return i;
+}
+
+uchar *env_get_addr (int index)
+{
+	if (env_valid) {
+		return ( ((uchar *)(env_addr + index)) );
+	} else {
+		return (&default_environment[index]);
+	}
+}
+
+/************************************************************************
+ * Look up variable from environment,
+ * return address of storage for that variable,
+ * or NULL if not found
+ */
+
+char *getenv (char *name)
+{
+	int i, nxt;
+
+	for (i=0; env_get_char(i) != '\0'; i=nxt+1) {
+		int val;
+
+		for (nxt=i; env_get_char(nxt) != '\0'; ++nxt) {
+			if (nxt >= CONFIG_ENV_SIZE) {
+				return (NULL);
+			}
+		}
+		if ((val=envmatch((uchar *)name, i)) < 0)
+			continue;
+		return ((char *)env_get_addr(val));
+	}
+
+	return (NULL);
 }
